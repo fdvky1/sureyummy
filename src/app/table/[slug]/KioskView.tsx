@@ -1,13 +1,14 @@
 'use client'
 
 import { useState } from "react"
-import { createOrder } from "@/actions/order.actions"
+import { createOrder } from "./actions"
 import { useRouter } from "next/navigation"
-import MenuCard from "@/app/components/MenuCard"
-import Cart from "@/app/components/Cart"
-import { PaymentMethod } from "@/generated/prisma/client"
+import MenuCard from "@/components/MenuCard"
+import Cart from "@/components/Cart"
+import { PaymentMethod } from "@/generated/prisma/browser"
 import { createOrderSchema } from "@/lib/validations"
 import { z } from "zod"
+import useToastStore from "@/stores/toast"
 
 type MenuItem = {
     id: string
@@ -43,6 +44,7 @@ export default function KioskView({ table, menuItems, activeOrder }: KioskViewPr
     const [showCheckout, setShowCheckout] = useState(false)
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.CASH)
     const [loading, setLoading] = useState(false)
+    const { setMessage } = useToastStore()
 
     function handleAddToCart(item: MenuItem) {
         setCart(prev => {
@@ -106,15 +108,15 @@ export default function KioskView({ table, menuItems, activeOrder }: KioskViewPr
                 router.refresh()
                 
                 // Show success message
-                alert('Pesanan berhasil dibuat! Silakan tunggu pesanan Anda.')
+                setMessage('Pesanan berhasil dibuat! Silakan tunggu pesanan Anda.', 'success')
             } else {
-                alert(result.error || 'Gagal membuat pesanan. Silakan coba lagi.')
+                setMessage(result.error || 'Gagal membuat pesanan. Silakan coba lagi.', 'error')
             }
         } catch (error) {
             if (error instanceof z.ZodError) {
-                alert(error.errors[0].message)
+                setMessage(error.issues[0].message, 'error')
             } else {
-                alert('Terjadi kesalahan. Silakan coba lagi.')
+                setMessage('Terjadi kesalahan. Silakan coba lagi.', 'error')
             }
         } finally {
             setLoading(false)

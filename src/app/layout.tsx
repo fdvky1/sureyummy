@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+import Toast from "@/components/Toast";
 
 const jakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta-sans",
@@ -23,6 +24,7 @@ export default function RootLayout({
       <body
         className={`${jakartaSans.variable} antialiased`}
       >
+        <Toast/>
         {children}
       </body>
     </html>

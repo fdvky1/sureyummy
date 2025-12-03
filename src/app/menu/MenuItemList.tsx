@@ -1,8 +1,9 @@
 'use client'
 
-import { deleteMenuItem } from "@/actions/menu.actions"
+import { deleteMenuItem } from "./actions"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
+import useToastStore from "@/stores/toast"
 
 type MenuItem = {
     id: string
@@ -15,6 +16,7 @@ type MenuItem = {
 export default function MenuItemList({ menuItems }: { menuItems: MenuItem[] }) {
     const router = useRouter()
     const [deletingId, setDeletingId] = useState<string | null>(null)
+    const { setMessage } = useToastStore()
 
     async function handleDelete(id: string) {
         if (!confirm('Apakah Anda yakin ingin menghapus menu ini?')) return
@@ -24,8 +26,9 @@ export default function MenuItemList({ menuItems }: { menuItems: MenuItem[] }) {
         
         if (result.success) {
             router.refresh()
+            setMessage('Menu berhasil dihapus', 'success')
         } else {
-            alert(result.error)
+            setMessage(result.error || 'Gagal menghapus menu', 'error')
         }
         setDeletingId(null)
     }
@@ -59,6 +62,15 @@ export default function MenuItemList({ menuItems }: { menuItems: MenuItem[] }) {
                         <div className="divider my-2"></div>
                         
                         <div className="card-actions justify-end">
+                            <button 
+                                className="btn btn-sm btn-primary btn-outline"
+                                onClick={() => router.push(`/menu/${item.id}`)}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                </svg>
+                                Edit
+                            </button>
                             <button 
                                 className="btn btn-sm btn-error btn-outline"
                                 onClick={() => handleDelete(item.id)}

@@ -1,10 +1,11 @@
 'use client'
 
-import { deleteTable, updateTableStatus } from "@/actions/table.actions"
-import { TableStatus } from "@/generated/prisma/client"
+import { deleteTable, updateTableStatus } from "./actions"
+import { TableStatus } from "@/generated/prisma/browser"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import QRCode from "qrcode"
+import useToastStore from "@/stores/toast"
 
 type Table = {
     id: string
@@ -18,6 +19,7 @@ type Table = {
 export default function TableList({ tables }: { tables: Table[] }) {
     const router = useRouter()
     const [deletingId, setDeletingId] = useState<string | null>(null)
+    const { setMessage } = useToastStore()
 
     async function handleDelete(id: string) {
         if (!confirm('Apakah Anda yakin ingin menghapus meja ini?')) return
@@ -27,8 +29,9 @@ export default function TableList({ tables }: { tables: Table[] }) {
         
         if (result.success) {
             router.refresh()
+            setMessage('Meja berhasil dihapus', 'success')
         } else {
-            alert(result.error)
+            setMessage(result.error || 'Gagal menghapus meja', 'error')
         }
         setDeletingId(null)
     }
@@ -55,7 +58,7 @@ export default function TableList({ tables }: { tables: Table[] }) {
             // Create a new window for printing
             const printWindow = window.open('', '_blank')
             if (!printWindow) {
-                alert('Mohon izinkan popup untuk mencetak QR Code')
+                setMessage('Mohon izinkan popup untuk mencetak QR Code', 'warning')
                 return
             }
 
@@ -130,7 +133,7 @@ export default function TableList({ tables }: { tables: Table[] }) {
             printWindow.document.close()
         } catch (error) {
             console.error('Error generating QR code:', error)
-            alert('Gagal membuat QR Code')
+            setMessage('Gagal membuat QR Code', 'error')
         }
     }
 

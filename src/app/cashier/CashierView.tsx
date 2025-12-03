@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useState } from "react"
-import { getActiveOrders } from "@/actions/order.actions"
-import { getTables } from "@/actions/table.actions"
-import { completeOrder } from "@/actions/order.actions"
+import { useState, useEffect } from "react"
+import { getActiveOrders } from "./actions"
+import { getTables } from "@/app/table/actions"
+import { completeOrder } from "./actions"
 import { useRouter } from "next/navigation"
-import { OrderStatus, TableStatus } from "@/generated/prisma/client"
+import { OrderStatus, TableStatus } from "@/generated/prisma/browser"
+import useToastStore from "@/stores/toast"
 
 type OrderItem = {
     id: string
@@ -52,6 +53,7 @@ export default function CashierView({
     const [tables, setTables] = useState<Table[]>(initialTables)
     const [selectedTable, setSelectedTable] = useState<string | null>(null)
     const [completingId, setCompletingId] = useState<string | null>(null)
+    const { setMessage } = useToastStore()
 
     useEffect(() => {
         // Poll for updates every 5 seconds
@@ -80,6 +82,7 @@ export default function CashierView({
         
         if (result.success) {
             router.refresh()
+            setMessage('Pesanan berhasil diselesaikan', 'success')
             // Refresh data
             const [ordersResult, tablesResult] = await Promise.all([
                 getActiveOrders(),
@@ -93,7 +96,7 @@ export default function CashierView({
                 setTables(tablesResult.data)
             }
         } else {
-            alert('Gagal menyelesaikan pesanan')
+            setMessage('Gagal menyelesaikan pesanan', 'error')
         }
         setCompletingId(null)
     }

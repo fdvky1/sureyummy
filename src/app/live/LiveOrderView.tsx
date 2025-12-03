@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect, useState } from "react"
-import { getActiveOrders } from "@/actions/order.actions"
-import { updateOrderStatus } from "@/actions/order.actions"
+import { getActiveOrders } from "./actions"
+import { updateOrderStatus } from "./actions"
 import { useRouter } from "next/navigation"
-import { OrderStatus } from "@/generated/prisma/client"
+import { OrderStatus } from "@/generated/prisma/browser"
+import useToastStore from "@/stores/toast"
 
 type OrderItem = {
     id: string
@@ -34,6 +35,7 @@ export default function LiveOrderView({ initialOrders }: { initialOrders: Order[
     const router = useRouter()
     const [orders, setOrders] = useState<Order[]>(initialOrders)
     const [updatingId, setUpdatingId] = useState<string | null>(null)
+    const { setMessage } = useToastStore()
 
     useEffect(() => {
         // Check for new orders
@@ -81,13 +83,14 @@ export default function LiveOrderView({ initialOrders }: { initialOrders: Order[
         
         if (result.success) {
             router.refresh()
+            setMessage('Status pesanan berhasil diubah', 'success')
             // Refresh orders
             const ordersResult = await getActiveOrders()
             if (ordersResult.success && ordersResult.data) {
                 setOrders(ordersResult.data)
             }
         } else {
-            alert('Gagal mengubah status pesanan')
+            setMessage('Gagal mengubah status pesanan', 'error')
         }
         setUpdatingId(null)
     }
