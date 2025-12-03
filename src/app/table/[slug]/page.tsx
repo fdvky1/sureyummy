@@ -1,5 +1,5 @@
-import { getTableBySlug } from "@/actions/table.actions"
-import { getMenuItems } from "@/actions/menu.actions"
+import { getTableBySlug } from "./actions"
+import { getMenuItems } from "@/app/menu/actions"
 import { redirect } from "next/navigation"
 import KioskView from "./KioskView"
 

@@ -1,4 +1,4 @@
-import { getTables } from "@/actions/table.actions"
+import { getTables } from "./actions"
 import Link from "next/link"
 import TableList from "./TableList"
 

@@ -1,4 +1,4 @@
-import { getMenuItems } from "@/actions/menu.actions"
+import { getMenuItems } from "./actions"
 import Link from "next/link"
 import MenuItemList from "./MenuItemList"
 

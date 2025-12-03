@@ -47,7 +47,7 @@ export async function createOrder(data: CreateOrderInput) {
     return { success: true, data: order }
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return { success: false, error: error.errors[0].message }
+      return { success: false, error: error.issues[0].message }
     }
     console.error('Error creating order:', error)
     return { success: false, error: 'Gagal membuat pesanan' }

@@ -2,7 +2,7 @@
 
 import { signIn } from 'next-auth/react';
 import { useState } from 'react';
-import { redirectAfterLogin } from '@/actions/auth.actions';
+import { redirectAfterLogin } from '../actions';
 
 export default function SignInPage() {
   const [email, setEmail] = useState('');

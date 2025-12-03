@@ -1,5 +1,5 @@
-import { getActiveOrders } from "@/actions/order.actions"
-import { getTables } from "@/actions/table.actions"
+import { getActiveOrders } from "./actions"
+import { getTables } from "@/app/table/actions"
 import CashierView from "./CashierView"
 
 export const dynamic = 'force-dynamic'

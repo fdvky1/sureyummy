@@ -1,6 +1,6 @@
 'use client'
 
-import { createTable } from "@/actions/table.actions"
+import { createTable } from "./actions"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { createTableSchema } from "@/lib/validations"
@@ -41,7 +41,7 @@ export default function Page(){
         } catch (error) {
             if (error instanceof z.ZodError) {
                 const fieldErrors: Record<string, string> = {}
-                error.errors.forEach(err => {
+                error.issues.forEach(err => {
                     if (err.path[0]) {
                         fieldErrors[err.path[0].toString()] = err.message
                     }

@@ -1,4 +1,4 @@
-import { getActiveOrders } from "@/actions/order.actions"
+import { getActiveOrders } from "./actions"
 import LiveOrderView from "./LiveOrderView"
 
 export const dynamic = 'force-dynamic'
