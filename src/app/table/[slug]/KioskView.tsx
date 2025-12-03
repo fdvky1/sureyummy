@@ -1,0 +1,283 @@
+'use client'
+
+import { useState } from "react"
+import { createOrder } from "@/actions/order.actions"
+import { useRouter } from "next/navigation"
+import MenuCard from "@/app/components/MenuCard"
+import Cart from "@/app/components/Cart"
+import { PaymentMethod } from "@/generated/prisma/client"
+import { createOrderSchema } from "@/lib/validations"
+import { z } from "zod"
+
+type MenuItem = {
+    id: string
+    name: string
+    description?: string | null
+    price: number
+    image?: string | null
+}
+
+type CartItem = {
+    id: string
+    name: string
+    price: number
+    quantity: number
+}
+
+type Table = {
+    id: string
+    number: number
+    code: string
+    status: string
+}
+
+type KioskViewProps = {
+    table: Table
+    menuItems: MenuItem[]
+    activeOrder: any | null
+}
+
+export default function KioskView({ table, menuItems, activeOrder }: KioskViewProps) {
+    const router = useRouter()
+    const [cart, setCart] = useState<CartItem[]>([])
+    const [showCheckout, setShowCheckout] = useState(false)
+    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.CASH)
+    const [loading, setLoading] = useState(false)
+
+    function handleAddToCart(item: MenuItem) {
+        setCart(prev => {
+            const existing = prev.find(i => i.id === item.id)
+            if (existing) {
+                return prev.map(i => 
+                    i.id === item.id 
+                        ? { ...i, quantity: i.quantity + 1 }
+                        : i
+                )
+            }
+            return [...prev, { 
+                id: item.id, 
+                name: item.name, 
+                price: item.price, 
+                quantity: 1 
+            }]
+        })
+    }
+
+    function handleUpdateQuantity(id: string, quantity: number) {
+        if (quantity < 1) return
+        setCart(prev => prev.map(item => 
+            item.id === id ? { ...item, quantity } : item
+        ))
+    }
+
+    function handleRemove(id: string) {
+        setCart(prev => prev.filter(item => item.id !== id))
+    }
+
+    function handleCheckout() {
+        if (cart.length === 0) return
+        setShowCheckout(true)
+    }
+
+    async function handleConfirmOrder() {
+        if (cart.length === 0) return
+        
+        setLoading(true)
+        const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+        
+        try {
+            // Validate with Zod
+            const validated = createOrderSchema.parse({
+                tableId: table.id,
+                items: cart.map(item => ({
+                    menuItemId: item.id,
+                    quantity: item.quantity,
+                    price: item.price
+                })),
+                totalPrice: total,
+                paymentMethod
+            })
+
+            const result = await createOrder(validated)
+
+            if (result.success) {
+                setCart([])
+                setShowCheckout(false)
+                router.refresh()
+                
+                // Show success message
+                alert('Pesanan berhasil dibuat! Silakan tunggu pesanan Anda.')
+            } else {
+                alert(result.error || 'Gagal membuat pesanan. Silakan coba lagi.')
+            }
+        } catch (error) {
+            if (error instanceof z.ZodError) {
+                alert(error.errors[0].message)
+            } else {
+                alert('Terjadi kesalahan. Silakan coba lagi.')
+            }
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    return (
+        <div className="min-h-screen bg-base-200">
+            {/* Header */}
+            <div className="bg-primary text-primary-content p-6 shadow-lg">
+                <div className="max-w-7xl mx-auto">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h1 className="text-3xl font-bold">Restoran Nasi Padang</h1>
+                            <p className="text-sm opacity-90 mt-1">Silakan pilih menu Anda</p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-sm opacity-90">Meja</p>
+                            <p className="text-2xl font-bold">{table.code}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Active Order Alert */}
+            {activeOrder && (
+                <div className="max-w-7xl mx-auto px-6 mt-6">
+                    <div className="alert alert-info">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span>Anda memiliki pesanan aktif. Pesanan baru akan ditambahkan ke bill yang sama.</span>
+                    </div>
+                </div>
+            )}
+
+            {/* Main Content */}
+            <div className="max-w-7xl mx-auto p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Menu Grid */}
+                    <div className="lg:col-span-2">
+                        <h2 className="text-2xl font-bold mb-4">Menu</h2>
+                        {menuItems.length === 0 ? (
+                            <div className="card bg-base-100 shadow-xl">
+                                <div className="card-body items-center text-center py-16">
+                                    <p className="text-lg">Belum ada menu tersedia</p>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {menuItems.map(item => (
+                                    <MenuCard 
+                                        key={item.id} 
+                                        item={item} 
+                                        onAddToCart={handleAddToCart}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Cart */}
+                    <div className="lg:col-span-1">
+                        <Cart 
+                            items={cart}
+                            onUpdateQuantity={handleUpdateQuantity}
+                            onRemove={handleRemove}
+                            onCheckout={handleCheckout}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* Checkout Modal */}
+            {showCheckout && (
+                <div className="modal modal-open">
+                    <div className="modal-box max-w-md">
+                        <h3 className="font-bold text-2xl mb-4">Konfirmasi Pesanan</h3>
+                        
+                        <div className="space-y-3 mb-6">
+                            <div className="bg-base-200 p-4 rounded-lg">
+                                <p className="text-sm text-base-content/70 mb-2">Meja:</p>
+                                <p className="font-bold text-lg">{table.code}</p>
+                            </div>
+
+                            <div className="bg-base-200 p-4 rounded-lg">
+                                <p className="text-sm text-base-content/70 mb-2">Pesanan:</p>
+                                <div className="space-y-1">
+                                    {cart.map(item => (
+                                        <div key={item.id} className="flex justify-between text-sm">
+                                            <span>{item.name} x{item.quantity}</span>
+                                            <span>Rp {(item.price * item.quantity).toLocaleString('id-ID')}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="bg-primary/10 p-4 rounded-lg">
+                                <div className="flex justify-between items-center">
+                                    <span className="font-bold text-lg">Total:</span>
+                                    <span className="font-bold text-xl text-primary">
+                                        Rp {cart.reduce((sum, item) => sum + (item.price * item.quantity), 0).toLocaleString('id-ID')}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="form-control">
+                                <label className="label">
+                                    <span className="label-text font-semibold">Metode Pembayaran:</span>
+                                </label>
+                                <div className="space-y-2">
+                                    <label className="label cursor-pointer bg-base-200 p-4 rounded-lg">
+                                        <span className="label-text">Cash</span> 
+                                        <input 
+                                            type="radio" 
+                                            name="payment" 
+                                            className="radio radio-primary" 
+                                            checked={paymentMethod === PaymentMethod.CASH}
+                                            onChange={() => setPaymentMethod(PaymentMethod.CASH)}
+                                        />
+                                    </label>
+                                    <label className="label cursor-pointer bg-base-200 p-4 rounded-lg opacity-50">
+                                        <div>
+                                            <span className="label-text">QRIS</span>
+                                            <span className="badge badge-sm ml-2">Segera Hadir</span>
+                                        </div>
+                                        <input 
+                                            type="radio" 
+                                            name="payment" 
+                                            className="radio radio-primary" 
+                                            disabled
+                                        />
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="modal-action">
+                            <button 
+                                className="btn btn-ghost"
+                                onClick={() => setShowCheckout(false)}
+                                disabled={loading}
+                            >
+                                Batal
+                            </button>
+                            <button 
+                                className="btn btn-primary"
+                                onClick={handleConfirmOrder}
+                                disabled={loading}
+                            >
+                                {loading ? (
+                                    <>
+                                        <span className="loading loading-spinner"></span>
+                                        Memproses...
+                                    </>
+                                ) : 'Konfirmasi Pesanan'}
+                            </button>
+                        </div>
+                    </div>
+                    <div className="modal-backdrop" onClick={() => !loading && setShowCheckout(false)}>
+                    </div>
+                </div>
+            )}
+        </div>
+    )
+}

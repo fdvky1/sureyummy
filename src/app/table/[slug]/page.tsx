@@ -1,0 +1,31 @@
+import { getTableBySlug } from "@/actions/table.actions"
+import { getMenuItems } from "@/actions/menu.actions"
+import { redirect } from "next/navigation"
+import KioskView from "./KioskView"
+
+export default async function Menu({ params }: { params: { slug: string } }) {
+    const [tableResult, menuResult] = await Promise.all([
+        getTableBySlug(params.slug),
+        getMenuItems()
+    ])
+
+    if (!tableResult.success || !tableResult.data) {
+        redirect('/table')
+    }
+
+    const table = tableResult.data
+    const menuItems = menuResult.success && menuResult.data ? menuResult.data : []
+
+    // Check if table has active order
+    const activeOrder = table.orders.find(order => 
+        order.status !== 'COMPLETED' && order.status !== 'CANCELLED'
+    )
+
+    return (
+        <KioskView 
+            table={table} 
+            menuItems={menuItems}
+            activeOrder={activeOrder || null}
+        />
+    )
+}
