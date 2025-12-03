@@ -1,15 +1,58 @@
 'use client'
 
-import { createMenuItem } from "@/actions/menu.actions"
+import { createMenuItem } from "./actions"
+import { uploadImage } from "@/lib/minio"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { createMenuItemSchema } from "@/lib/validations"
 import { z } from "zod"
+import useToastStore from "@/stores/toast"
+import Image from "next/image"
 
 export default function Page() {
     const router = useRouter()
     const [loading, setLoading] = useState(false)
+    const [uploading, setUploading] = useState(false)
     const [errors, setErrors] = useState<Record<string, string>>({})
+    const [imageFile, setImageFile] = useState<File | null>(null)
+    const [previewUrl, setPreviewUrl] = useState<string>('')
+    const fileInputRef = useRef<HTMLInputElement>(null)
+    const { setMessage } = useToastStore()
+
+    function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        // Validate file type
+        const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg']
+        if (!validTypes.includes(file.type)) {
+            setMessage('Format file tidak valid. Gunakan JPG, PNG, atau WEBP', 'error')
+            return
+        }
+
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            setMessage('Ukuran file maksimal 5MB', 'error')
+            return
+        }
+
+        setImageFile(file)
+        
+        // Create preview
+        const reader = new FileReader()
+        reader.onloadend = () => {
+            setPreviewUrl(reader.result as string)
+        }
+        reader.readAsDataURL(file)
+    }
+
+    function handleRemoveImage() {
+        setImageFile(null)
+        setPreviewUrl('')
+        if (fileInputRef.current) {
+            fileInputRef.current.value = ''
+        }
+    }
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault()
@@ -20,20 +63,36 @@ export default function Page() {
         const name = formData.get('name') as string
         const description = formData.get('description') as string
         const price = parseFloat(formData.get('price') as string)
-        const image = formData.get('image') as string
 
         try {
+            // Upload image if selected
+            let imageUrl = ''
+            if (imageFile) {
+                setUploading(true)
+                const uploadResult = await uploadImage(imageFile)
+                setUploading(false)
+                
+                if (uploadResult.success && uploadResult.url) {
+                    imageUrl = uploadResult.url
+                } else {
+                    setMessage(uploadResult.error || 'Gagal mengupload gambar', 'error')
+                    setLoading(false)
+                    return
+                }
+            }
+
             // Validate with Zod
             const validated = createMenuItemSchema.parse({
                 name,
                 description: description || undefined,
                 price,
-                image: image || undefined
+                image: imageUrl || undefined
             })
 
             const result = await createMenuItem(validated)
 
             if (result.success) {
+                setMessage('Menu berhasil dibuat', 'success')
                 router.push('/menu')
             } else {
                 setErrors({ general: result.error || 'Gagal membuat menu' })
@@ -41,7 +100,7 @@ export default function Page() {
         } catch (error) {
             if (error instanceof z.ZodError) {
                 const fieldErrors: Record<string, string> = {}
-                error.errors.forEach(err => {
+                error.issues.forEach(err => {
                     if (err.path[0]) {
                         fieldErrors[err.path[0].toString()] = err.message
                     }
@@ -71,6 +130,53 @@ export default function Page() {
                 <div className="card bg-base-100 shadow-xl">
                     <div className="card-body">
                         <form onSubmit={handleSubmit}>
+                            {/* Image Upload */}
+                            <div className="form-control mb-4">
+                                <label className="label">
+                                    <span className="label-text font-semibold">Gambar Menu</span>
+                                </label>
+                                
+                                {previewUrl ? (
+                                    <div className="relative w-full h-64 mb-4 rounded-lg overflow-hidden bg-base-200">
+                                        <Image 
+                                            src={previewUrl} 
+                                            alt="Preview"
+                                            fill
+                                            className="object-cover"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={handleRemoveImage}
+                                            className="absolute top-2 right-2 btn btn-error btn-sm btn-circle"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="w-full h-64 mb-4 rounded-lg border-2 border-dashed border-base-300 flex items-center justify-center bg-base-200">
+                                        <div className="text-center">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-base-content/50 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                            <p className="text-sm text-base-content/70">Pilih gambar</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp,image/jpg"
+                                    onChange={handleImageSelect}
+                                    className="file-input file-input-bordered w-full"
+                                />
+                                <label className="label">
+                                    <span className="label-text-alt">Format: JPG, PNG, WEBP. Maksimal 5MB (opsional)</span>
+                                </label>
+                            </div>
+
                             <div className="form-control mb-4">
                                 <label className="label">
                                     <span className="label-text font-semibold">Nama Menu</span>
@@ -126,28 +232,6 @@ export default function Page() {
                                 )}
                             </div>
 
-                            <div className="form-control mb-6">
-                                <label className="label">
-                                    <span className="label-text font-semibold">URL Gambar</span>
-                                </label>
-                                <input 
-                                    type="url" 
-                                    name="image"
-                                    placeholder="https://example.com/image.jpg (opsional)" 
-                                    className={`input input-bordered w-full ${errors.image ? 'input-error' : ''}`}
-                                />
-                                {errors.image && (
-                                    <label className="label">
-                                        <span className="label-text-alt text-error">{errors.image}</span>
-                                    </label>
-                                )}
-                                {!errors.image && (
-                                    <label className="label">
-                                        <span className="label-text-alt">Masukkan URL gambar untuk menu</span>
-                                    </label>
-                                )}
-                            </div>
-
                             {errors.general && (
                                 <div className="alert alert-error mb-4">
                                     <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -159,9 +243,14 @@ export default function Page() {
                                 <button 
                                     type="submit" 
                                     className="btn btn-primary"
-                                    disabled={loading}
+                                    disabled={loading || uploading}
                                 >
-                                    {loading ? (
+                                    {uploading ? (
+                                        <>
+                                            <span className="loading loading-spinner"></span>
+                                            Mengupload...
+                                        </>
+                                    ) : loading ? (
                                         <>
                                             <span className="loading loading-spinner"></span>
                                             Menyimpan...
