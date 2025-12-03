@@ -1,0 +1,116 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+  engineType = "client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  KITCHEN_STAFF
+  CASHIER
+}
+
+enum TableStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+  OUT_OF_SERVICE
+}
+
+enum MenuCategory {
+  APPETIZER
+  MAIN_COURSE
+  DESSERT
+  BEVERAGE
+  SIDE_DISH
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  READY
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  QRIS
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String?
+  email     String   @unique
+  password  String
+  role     Role   
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MenuItem {
+  id          String   @id @default(uuid())
+  name        String
+  image      String?
+  description String?
+  price       Float
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orderItems OrderItem[]
+}
+
+model Table {
+  id        String   @id @default(uuid())
+  number    Int      @unique
+  code  String   @unique
+  slug String   @unique
+  status TableStatus @default(AVAILABLE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders Order[]
+}
+
+model OrderItem {
+  id         String    @id @default(uuid())
+  order      Order     @relation(fields: [orderId], references: [id])
+  orderId    String
+  menuItem   MenuItem  @relation(fields: [menuItemId], references: [id])
+  menuItemId String
+  quantity   Int
+  price      Float
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+model Order {
+  id         String    @id @default(uuid())
+  table      Table     @relation(fields: [tableId], references: [id])
+  tableId    String
+  
+  totalPrice Float
+  status     OrderStatus @default(PENDING)
+  paymentMethod PaymentMethod?
+  isPaid     Boolean @default(false)
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  orderItems OrderItem[]
+}
