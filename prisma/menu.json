@@ -1,0 +1,242 @@
+[
+  {
+    "id": "menu_001",
+    "name": "Rendang Sapi",
+    "category": "MAIN_COURSE",
+    "description": "Potongan daging sapi yang dimasak lama dengan santan kental dan campuran rempah-rempah khas Minang.",
+    "price": 25000,
+    "image": "https://source.unsplash.com/800x600/?beef-rendang"
+  },
+  {
+    "id": "menu_002",
+    "name": "Ayam Pop",
+    "category": "MAIN_COURSE",
+    "description": "Ayam kampung rebus air kelapa yang digoreng sebentar, berwarna pucat gurih, disajikan dengan sambal merah.",
+    "price": 22000,
+    "image": "https://source.unsplash.com/800x600/?chicken-dish"
+  },
+  {
+    "id": "menu_003",
+    "name": "Dendeng Batokok (Lado Ijo)",
+    "category": "MAIN_COURSE",
+    "description": "Irisan daging sapi pipih digoreng kering disiram sambal cabai hijau berminyak.",
+    "price": 24000,
+    "image": "https://source.unsplash.com/800x600/?meat-dish"
+  },
+  {
+    "id": "menu_004",
+    "name": "Gulai Tunjang",
+    "category": "MAIN_COURSE",
+    "description": "Kikil kaki sapi kenyal dalam kuah gulai santan kuning kental kaya rempah.",
+    "price": 26000,
+    "image": "https://source.unsplash.com/800x600/?curry"
+  },
+  {
+    "id": "menu_005",
+    "name": "Ikan Asam Padeh",
+    "category": "MAIN_COURSE",
+    "description": "Ikan dimasak kuah merah pedas asam segar tanpa santan.",
+    "price": 20000,
+    "image": "https://source.unsplash.com/800x600/?fish-curry"
+  },
+  {
+    "id": "menu_006",
+    "name": "Telur Dadar Padang",
+    "category": "MAIN_COURSE",
+    "description": "Telur dadar tebal garing di luar lembut di dalam, campur daun bawang dan seledri.",
+    "price": 10000,
+    "image": "https://source.unsplash.com/800x600/?omelette"
+  },
+  {
+    "id": "menu_007",
+    "name": "Gulai Nangka (Sayur Kapau)",
+    "category": "SIDE_DISH",
+    "description": "Nangka muda dimasak gulai santan dengan kol dan kacang panjang.",
+    "price": 8000,
+    "image": "https://source.unsplash.com/800x600/?vegetable-curry"
+  },
+  {
+    "id": "menu_008",
+    "name": "Sambal Ijo Khas Padang",
+    "category": "CONDIMENT",
+    "description": "Sambal cabai hijau besar dan tomat hijau yang dikukus lalu ditumis minyak.",
+    "price": 5000,
+    "image": "https://source.unsplash.com/800x600/?green-chili-sauce"
+  },
+  {
+    "id": "menu_009",
+    "name": "Es Teh Talua",
+    "category": "BEVERAGE",
+    "description": "Teh telur dingin yang dikocok hingga creamy, diberi jeruk nipis.",
+    "price": 15000,
+    "image": "https://source.unsplash.com/800x600/?iced-tea"
+  },
+  {
+    "id": "menu_010",
+    "name": "Kerupuk Jangek (Kulit)",
+    "category": "SIDE_DISH",
+    "description": "Kerupuk kulit sapi renyah, nikmat disiram kuah gulai.",
+    "price": 6000,
+    "image": "https://source.unsplash.com/800x600/?crackers"
+  },
+  {
+    "id": "menu_011",
+    "name": "Teh Talua (Hangat)",
+    "category": "BEVERAGE",
+    "description": "Teh telur hangat berbusa, penambah stamina khas Minang.",
+    "price": 15000,
+    "image": "https://source.unsplash.com/800x600/?tea-egg"
+  },
+  {
+    "id": "menu_012",
+    "name": "Es Tebak",
+    "category": "DESSERT",
+    "description": "Es campur khas Payakumbuh dengan isian tebak (tepung beras), tape, dan santan.",
+    "price": 17000,
+    "image": "https://source.unsplash.com/800x600/?ice-dessert"
+  },
+  {
+    "id": "menu_013",
+    "name": "Jus Pinang Muda",
+    "category": "BEVERAGE",
+    "description": "Jus kesehatan dari pinang muda, madu, dan kuning telur.",
+    "price": 20000,
+    "image": "https://source.unsplash.com/800x600/?herbal-juice"
+  },
+  {
+    "id": "menu_014",
+    "name": "Es Timun Serut",
+    "category": "BEVERAGE",
+    "description": "Minuman segar serutan timun dan selasih, penetral lemak.",
+    "price": 12000,
+    "image": "https://source.unsplash.com/800x600/?cucumber-drink"
+  },
+  {
+    "id": "menu_015",
+    "name": "Kopi Kawa Daun",
+    "category": "BEVERAGE",
+    "description": "Seduhan daun kopi sangrai, disajikan di tempurung kelapa.",
+    "price": 10000,
+    "image": "https://source.unsplash.com/800x600/?coffee-leaves"
+  },
+  {
+    "id": "menu_016",
+    "name": "Udang Balado Pete",
+    "category": "MAIN_COURSE",
+    "description": "Udang goreng ditumis sambal merah pedas dan petai.",
+    "price": 35000,
+    "image": "https://source.unsplash.com/800x600/?shrimp-chili"
+  },
+  {
+    "id": "menu_017",
+    "name": "Perkedel Kentang Padang",
+    "category": "SIDE_DISH",
+    "description": "Perkedel kentang jumbo dengan balutan telur tebal.",
+    "price": 5000,
+    "image": "https://source.unsplash.com/800x600/?potato-fritters"
+  },
+  {
+    "id": "menu_018",
+    "name": "Terong Balado",
+    "category": "SIDE_DISH",
+    "description": "Terong ungu goreng disiram sambal balado merah.",
+    "price": 10000,
+    "image": "https://source.unsplash.com/800x600/?eggplant-chili"
+  },
+  {
+    "id": "menu_019",
+    "name": "Gulai Otak",
+    "category": "MAIN_COURSE",
+    "description": "Otak sapi lembut creamy dalam kuah gulai santan.",
+    "price": 28000,
+    "image": "https://source.unsplash.com/800x600/?brain-curry"
+  },
+  {
+    "id": "menu_020",
+    "name": "Keripik Sanjai Balado",
+    "category": "APPETIZER",
+    "description": "Keripik singkong balado karamel pedas manis. (Bisa jadi Snack/Appetizer)",
+    "price": 15000,
+    "image": "https://source.unsplash.com/800x600/?cassava-chips"
+  },
+  {
+    "id": "menu_021",
+    "name": "Telur Balado (Bulat)",
+    "category": "MAIN_COURSE",
+    "description": "Telur rebus goreng dimasak sambal balado merah.",
+    "price": 8000,
+    "image": "https://source.unsplash.com/800x600/?boiled-egg-chili"
+  },
+  {
+    "id": "menu_022",
+    "name": "Ikan Kembung Balado",
+    "category": "MAIN_COURSE",
+    "description": "Ikan kembung goreng disiram sambal merah kasar.",
+    "price": 18000,
+    "image": "https://source.unsplash.com/800x600/?fried-fish-chili"
+  },
+  {
+    "id": "menu_023",
+    "name": "Ayam Bakar Padang",
+    "category": "MAIN_COURSE",
+    "description": "Ayam ungkep santan kuning dibakar arang.",
+    "price": 23000,
+    "image": "https://source.unsplash.com/800x600/?grilled-chicken"
+  },
+  {
+    "id": "menu_024",
+    "name": "Paru Goreng Kering",
+    "category": "MAIN_COURSE",
+    "description": "Irisan paru sapi berbumbu digoreng sangat garing renyah.",
+    "price": 22000,
+    "image": "https://source.unsplash.com/800x600/?fried-beef-lung"
+  },
+  {
+    "id": "menu_025",
+    "name": "Gulai Cincang (Lemak)",
+    "category": "MAIN_COURSE",
+    "description": "Tetelan daging sapi berlemak kuah gulai berminyak.",
+    "price": 28000,
+    "image": "https://source.unsplash.com/800x600/?meat-curry"
+  },
+  {
+    "id": "menu_026",
+    "name": "Ikan Lele Goreng Balado",
+    "category": "MAIN_COURSE",
+    "description": "Ikan lele goreng garing dibalut sambal merah/ijo.",
+    "price": 15000,
+    "image": "https://source.unsplash.com/800x600/?fried-catfish"
+  },
+  {
+    "id": "menu_027",
+    "name": "Jengkol Balado",
+    "category": "MAIN_COURSE",
+    "description": "Jengkol tua empuk ditumis sambal balado minyak.",
+    "price": 17000,
+    "image": "https://source.unsplash.com/800x600/?stinky-bean-food"
+  },
+  {
+    "id": "menu_028",
+    "name": "Ikan Mas Gulai Kuning",
+    "category": "MAIN_COURSE",
+    "description": "Ikan mas kuah gulai kuning asam pedas.",
+    "price": 20000,
+    "image": "https://source.unsplash.com/800x600/?yellow-fish-curry"
+  },
+  {
+    "id": "menu_029",
+    "name": "Sate Padang",
+    "category": "MAIN_COURSE",
+    "description": "Sate daging kuah kental tepung beras dan rempah.",
+    "price": 25000,
+    "image": "https://source.unsplash.com/800x600/?satay"
+  },
+  {
+    "id": "menu_030",
+    "name": "Gulai Kepala Kakap",
+    "category": "MAIN_COURSE",
+    "description": "Kepala kakap besar kuah gulai santan kental premium.",
+    "price": 65000,
+    "image": "https://source.unsplash.com/800x600/?fish-head-curry"
+  }
+]
