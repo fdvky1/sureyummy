@@ -41,6 +41,7 @@ type KioskViewProps = {
 export default function KioskView({ table, menuItems, activeOrder }: KioskViewProps) {
     const router = useRouter()
     const [cart, setCart] = useState<CartItem[]>([])
+    const [showCart, setShowCart] = useState(false)
     const [showCheckout, setShowCheckout] = useState(false)
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.CASH)
     const [loading, setLoading] = useState(false)
@@ -78,6 +79,7 @@ export default function KioskView({ table, menuItems, activeOrder }: KioskViewPr
 
     function handleCheckout() {
         if (cart.length === 0) return
+        setShowCart(false)
         setShowCheckout(true)
     }
 
@@ -104,6 +106,7 @@ export default function KioskView({ table, menuItems, activeOrder }: KioskViewPr
 
             if (result.success) {
                 setCart([])
+                setShowCart(false)
                 setShowCheckout(false)
                 router.refresh()
                 
@@ -154,7 +157,7 @@ export default function KioskView({ table, menuItems, activeOrder }: KioskViewPr
             )}
 
             {/* Main Content */}
-            <div className="max-w-7xl mx-auto p-6">
+            <div className="max-w-7xl mx-auto p-6 pb-32 lg:pb-6">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Menu Grid */}
                     <div className="lg:col-span-2">
@@ -178,8 +181,8 @@ export default function KioskView({ table, menuItems, activeOrder }: KioskViewPr
                         )}
                     </div>
 
-                    {/* Cart */}
-                    <div className="lg:col-span-1">
+                    {/* Cart - Desktop Only */}
+                    <div className="hidden lg:block lg:col-span-1">
                         <Cart 
                             items={cart}
                             onUpdateQuantity={handleUpdateQuantity}
@@ -189,6 +192,68 @@ export default function KioskView({ table, menuItems, activeOrder }: KioskViewPr
                     </div>
                 </div>
             </div>
+
+            {/* Floating Cart Button - Mobile Only */}
+            {cart.length > 0 && (
+                <div className="fixed bottom-6 left-0 right-0 px-6 lg:hidden z-50">
+                    <button 
+                        className="btn btn-primary w-full shadow-2xl"
+                        onClick={() => setShowCart(true)}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        <span className="flex-1 text-left">
+                            Lihat Keranjang ({cart.reduce((sum, item) => sum + item.quantity, 0)} item)
+                        </span>
+                        <span className="font-bold">
+                            Rp {cart.reduce((sum, item) => sum + (item.price * item.quantity), 0).toLocaleString('id-ID')}
+                        </span>
+                    </button>
+                </div>
+            )}
+
+            {/* Cart Drawer - Mobile Only (Bottom Sheet) */}
+            {showCart && (
+                <div className="lg:hidden">
+                    {/* Backdrop */}
+                    <div 
+                        className="fixed inset-0 bg-black/50 z-40 animate-fade-in"
+                        onClick={() => setShowCart(false)}
+                    ></div>
+                    
+                    {/* Bottom Sheet */}
+                    <div className="fixed bottom-0 left-0 right-0 bg-base-100 rounded-t-3xl shadow-2xl z-50 animate-slide-up" style={{ height: '50vh', maxHeight: '600px' }}>
+                        {/* Handle */}
+                        <div className="flex justify-center pt-3 pb-2">
+                            <div className="w-12 h-1.5 bg-base-300 rounded-full"></div>
+                        </div>
+                        
+                        {/* Header */}
+                        <div className="px-6 pb-4 border-b border-base-300">
+                            <div className="flex items-center justify-between">
+                                <h3 className="font-bold text-xl">Keranjang</h3>
+                                <button 
+                                    className="btn btn-sm btn-circle btn-ghost"
+                                    onClick={() => setShowCart(false)}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        </div>
+                        
+                        {/* Content */}
+                        <div className="px-6 py-4 overflow-y-auto" style={{ height: 'calc(100% - 80px)' }}>
+                            <Cart 
+                                items={cart}
+                                onUpdateQuantity={handleUpdateQuantity}
+                                onRemove={handleRemove}
+                                onCheckout={handleCheckout}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Checkout Modal */}
             {showCheckout && (

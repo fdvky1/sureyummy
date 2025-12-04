@@ -1,22 +1,21 @@
 'use client'
 
 import { getMenuItemById, updateMenuItem } from "./actions"
-import { uploadImage, deleteImage } from "@/lib/minio"
 import { useRouter } from "next/navigation"
-import { useState, useEffect, useRef } from "react"
-import { updateMenuItemSchema } from "@/lib/validations"
-import { z } from "zod"
+import { useState, useEffect, useRef, use } from "react"
 import useToastStore from "@/stores/toast"
 import Image from "next/image"
 
-export default function EditMenuPage({ params }: { params: { id: string } }) {
+export default function EditMenuPage({ params }: { params:Promise<{ id: string }> }) {
+    const {id: menuId} = use(params);
+
     const router = useRouter()
     const [loading, setLoading] = useState(false)
-    const [uploading, setUploading] = useState(false)
     const [errors, setErrors] = useState<Record<string, string>>({})
     const [imageUrl, setImageUrl] = useState<string>('')
     const [imageFile, setImageFile] = useState<File | null>(null)
     const [previewUrl, setPreviewUrl] = useState<string>('')
+    const [removeImage, setRemoveImage] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
     const { setMessage } = useToastStore()
     
@@ -28,7 +27,7 @@ export default function EditMenuPage({ params }: { params: { id: string } }) {
 
     useEffect(() => {
         async function fetchMenuItem() {
-            const result = await getMenuItemById(params.id)
+            const result = await getMenuItemById(menuId)
             if (result.success && result.data) {
                 setFormData({
                     name: result.data.name,
@@ -45,7 +44,7 @@ export default function EditMenuPage({ params }: { params: { id: string } }) {
             }
         }
         fetchMenuItem()
-    }, [params.id, router, setMessage])
+    }, [menuId, router, setMessage])
 
     function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0]
@@ -65,6 +64,7 @@ export default function EditMenuPage({ params }: { params: { id: string } }) {
         }
 
         setImageFile(file)
+        setRemoveImage(false)
         
         // Create preview
         const reader = new FileReader()
@@ -74,39 +74,12 @@ export default function EditMenuPage({ params }: { params: { id: string } }) {
         reader.readAsDataURL(file)
     }
 
-    async function handleUploadImage() {
-        if (!imageFile) return imageUrl
-
-        setUploading(true)
-        try {
-            const result = await uploadImage(imageFile)
-            
-            if (result.success && result.url) {
-                setImageUrl(result.url)
-                setMessage('Gambar berhasil diupload', 'success')
-                return result.url
-            } else {
-                setMessage(result.error || 'Gagal mengupload gambar', 'error')
-                return imageUrl
-            }
-        } catch (error) {
-            setMessage('Gagal mengupload gambar', 'error')
-            return imageUrl
-        } finally {
-            setUploading(false)
-        }
-    }
-
-    async function handleRemoveImage() {
+    function handleRemoveImage() {
         if (!confirm('Hapus gambar ini?')) return
-
-        if (imageUrl) {
-            await deleteImage(imageUrl)
-        }
         
-        setImageUrl('')
         setImageFile(null)
         setPreviewUrl('')
+        setRemoveImage(true)
         if (fileInputRef.current) {
             fileInputRef.current.value = ''
         }
@@ -117,22 +90,19 @@ export default function EditMenuPage({ params }: { params: { id: string } }) {
         setLoading(true)
         setErrors({})
 
+        const submitFormData = new FormData()
+        submitFormData.set('name', formData.name)
+        submitFormData.set('description', formData.description)
+        submitFormData.set('price', formData.price.toString())
+        submitFormData.set('currentImageUrl', imageUrl)
+        submitFormData.set('removeImage', removeImage.toString())
+        
+        if (imageFile) {
+            submitFormData.set('image', imageFile)
+        }
+
         try {
-            // Upload image if new file selected
-            let finalImageUrl = imageUrl
-            if (imageFile) {
-                finalImageUrl = await handleUploadImage()
-            }
-
-            // Validate with Zod
-            const validated = updateMenuItemSchema.parse({
-                name: formData.name,
-                description: formData.description || undefined,
-                price: formData.price,
-                image: finalImageUrl || undefined
-            })
-
-            const result = await updateMenuItem(params.id, validated)
+            const result = await updateMenuItem(menuId, submitFormData)
 
             if (result.success) {
                 setMessage('Menu berhasil diupdate', 'success')
@@ -141,17 +111,7 @@ export default function EditMenuPage({ params }: { params: { id: string } }) {
                 setErrors({ general: result.error || 'Gagal mengupdate menu' })
             }
         } catch (error) {
-            if (error instanceof z.ZodError) {
-                const fieldErrors: Record<string, string> = {}
-                error.issues.forEach(err => {
-                    if (err.path[0]) {
-                        fieldErrors[err.path[0].toString()] = err.message
-                    }
-                })
-                setErrors(fieldErrors)
-            } else {
-                setErrors({ general: 'Terjadi kesalahan' })
-            }
+            setErrors({ general: 'Terjadi kesalahan' })
         } finally {
             setLoading(false)
         }
@@ -289,14 +249,14 @@ export default function EditMenuPage({ params }: { params: { id: string } }) {
                                 <button 
                                     type="submit" 
                                     className="btn btn-primary"
-                                    disabled={loading || uploading}
+                                    disabled={loading}
                                 >
-                                    {loading || uploading ? (
+                                    {loading ? (
                                         <>
                                             <span className="loading loading-spinner"></span>
-                                            {uploading ? 'Mengupload...' : 'Menyimpan...'}
+                                            Menyimpan...
                                         </>
-                                    ) : 'Update Menu'}
+                                    ) : 'Simpan Perubahan'}
                                 </button>
                             </div>
                         </form>

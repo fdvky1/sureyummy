@@ -3,9 +3,10 @@ import { getMenuItems } from "@/app/menu/actions"
 import { redirect } from "next/navigation"
 import KioskView from "./KioskView"
 
-export default async function Menu({ params }: { params: { slug: string } }) {
+export default async function Menu({ params }: { params: Promise<{ slug: string }> }) {
+    const { slug } = await params;
     const [tableResult, menuResult] = await Promise.all([
-        getTableBySlug(params.slug),
+        getTableBySlug(slug),
         getMenuItems()
     ])
 

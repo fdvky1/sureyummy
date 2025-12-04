@@ -1,18 +1,14 @@
 'use client'
 
 import { createMenuItem } from "./actions"
-import { uploadImage } from "@/lib/minio"
 import { useRouter } from "next/navigation"
 import { useState, useRef } from "react"
-import { createMenuItemSchema } from "@/lib/validations"
-import { z } from "zod"
 import useToastStore from "@/stores/toast"
 import Image from "next/image"
 
 export default function Page() {
     const router = useRouter()
     const [loading, setLoading] = useState(false)
-    const [uploading, setUploading] = useState(false)
     const [errors, setErrors] = useState<Record<string, string>>({})
     const [imageFile, setImageFile] = useState<File | null>(null)
     const [previewUrl, setPreviewUrl] = useState<string>('')
@@ -60,36 +56,14 @@ export default function Page() {
         setErrors({})
 
         const formData = new FormData(e.currentTarget)
-        const name = formData.get('name') as string
-        const description = formData.get('description') as string
-        const price = parseFloat(formData.get('price') as string)
+        
+        // Add image file if selected
+        if (imageFile) {
+            formData.set('image', imageFile)
+        }
 
         try {
-            // Upload image if selected
-            let imageUrl = ''
-            if (imageFile) {
-                setUploading(true)
-                const uploadResult = await uploadImage(imageFile)
-                setUploading(false)
-                
-                if (uploadResult.success && uploadResult.url) {
-                    imageUrl = uploadResult.url
-                } else {
-                    setMessage(uploadResult.error || 'Gagal mengupload gambar', 'error')
-                    setLoading(false)
-                    return
-                }
-            }
-
-            // Validate with Zod
-            const validated = createMenuItemSchema.parse({
-                name,
-                description: description || undefined,
-                price,
-                image: imageUrl || undefined
-            })
-
-            const result = await createMenuItem(validated)
+            const result = await createMenuItem(formData)
 
             if (result.success) {
                 setMessage('Menu berhasil dibuat', 'success')
@@ -98,17 +72,7 @@ export default function Page() {
                 setErrors({ general: result.error || 'Gagal membuat menu' })
             }
         } catch (error) {
-            if (error instanceof z.ZodError) {
-                const fieldErrors: Record<string, string> = {}
-                error.issues.forEach(err => {
-                    if (err.path[0]) {
-                        fieldErrors[err.path[0].toString()] = err.message
-                    }
-                })
-                setErrors(fieldErrors)
-            } else {
-                setErrors({ general: 'Terjadi kesalahan' })
-            }
+            setErrors({ general: 'Terjadi kesalahan' })
         } finally {
             setLoading(false)
         }
@@ -243,14 +207,9 @@ export default function Page() {
                                 <button 
                                     type="submit" 
                                     className="btn btn-primary"
-                                    disabled={loading || uploading}
+                                    disabled={loading}
                                 >
-                                    {uploading ? (
-                                        <>
-                                            <span className="loading loading-spinner"></span>
-                                            Mengupload...
-                                        </>
-                                    ) : loading ? (
+                                    {loading ? (
                                         <>
                                             <span className="loading loading-spinner"></span>
                                             Menyimpan...

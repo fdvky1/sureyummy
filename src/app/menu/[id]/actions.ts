@@ -2,7 +2,8 @@
 
 import prisma from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
-import { updateMenuItemSchema, UpdateMenuItemInput } from "@/lib/validations"
+import { updateMenuItemSchema } from "@/lib/validations"
+import { uploadImage, deleteImage } from "@/lib/minio"
 import { z } from "zod"
 
 export async function getMenuItemById(id: string) {
@@ -17,11 +18,46 @@ export async function getMenuItemById(id: string) {
   }
 }
 
-export async function updateMenuItem(id: string, data: UpdateMenuItemInput) {
+export async function updateMenuItem(id: string, formData: FormData) {
   try {
-    // Validate input
-    const validated = updateMenuItemSchema.parse(data)
-    
+    const name = formData.get('name') as string
+    const description = formData.get('description') as string
+    const price = parseFloat(formData.get('price') as string)
+    const currentImageUrl = formData.get('currentImageUrl') as string
+    const imageFile = formData.get('image') as File | null
+    const removeImage = formData.get('removeImage') === 'true'
+
+    let finalImageUrl = currentImageUrl
+
+    // Remove old image if requested
+    if (removeImage && currentImageUrl) {
+      await deleteImage(currentImageUrl)
+      finalImageUrl = ''
+    }
+
+    // Upload new image if provided
+    if (imageFile && imageFile.size > 0) {
+      // Delete old image if exists
+      if (currentImageUrl) {
+        await deleteImage(currentImageUrl)
+      }
+      
+      const uploadResult = await uploadImage(imageFile)
+      if (uploadResult.success && uploadResult.url) {
+        finalImageUrl = uploadResult.url
+      } else {
+        return { success: false, error: uploadResult.error || 'Gagal mengupload gambar' }
+      }
+    }
+
+    // Validate with Zod
+    const validated = updateMenuItemSchema.parse({
+      name,
+      description: description || undefined,
+      price,
+      image: finalImageUrl || undefined
+    })
+
     const menuItem = await prisma.menuItem.update({
       where: { id },
       data: {
@@ -29,6 +65,7 @@ export async function updateMenuItem(id: string, data: UpdateMenuItemInput) {
         image: validated.image || undefined
       }
     })
+    
     revalidatePath('/menu')
     revalidatePath('/table')
     return { success: true, data: menuItem }
