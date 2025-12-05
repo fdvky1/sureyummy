@@ -7,7 +7,7 @@ import { TableStatus } from "@/generated/prisma/client"
 export async function getTables() {
   try {
     const tables = await prisma.table.findMany({
-      orderBy: { number: 'asc' },
+      orderBy: { name: 'asc' },
       include: {
         orders: {
           where: {
