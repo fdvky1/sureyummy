@@ -27,16 +27,16 @@ type Order = {
     paymentMethod?: string | null
     table: {
         id: string
-        code: string
-        number: number
+        name: string
+        slug: string
     }
     orderItems: OrderItem[]
 }
 
 type Table = {
     id: string
-    number: number
-    code: string
+    name: string
+    slug: string
     status: TableStatus
     orders: any[]
 }
@@ -198,7 +198,7 @@ export default function CashierView({
                                             onClick={() => setSelectedTable(table.id)}
                                         >
                                             <div className="flex items-center justify-between mb-2">
-                                                <span className="font-bold text-lg">Meja {table.code}</span>
+                                                <span className="font-bold text-lg">{table.name}</span>
                                                 {getTableStatusBadge(table.status)}
                                             </div>
                                             {table.orders.length > 0 && (
@@ -219,7 +219,7 @@ export default function CashierView({
                             <div className="card-body">
                                 <h2 className="card-title">
                                     {selectedTableData 
-                                        ? `Pesanan Meja ${selectedTableData.code}`
+                                        ? `Pesanan ${selectedTableData.name}`
                                         : 'Semua Pesanan Aktif'
                                     }
                                 </h2>
@@ -238,7 +238,7 @@ export default function CashierView({
                                             <div key={order.id} className="border border-base-300 rounded-lg p-4">
                                                 <div className="flex items-start justify-between mb-3">
                                                     <div>
-                                                        <h3 className="font-bold text-lg">Meja {order.table.code}</h3>
+                                                        <h3 className="font-bold text-lg">{order.table.name}</h3>
                                                         <p className="text-xs text-base-content/70">
                                                             {new Date(order.createdAt).toLocaleString('id-ID')}
                                                         </p>
