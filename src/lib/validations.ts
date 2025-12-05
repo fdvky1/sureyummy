@@ -2,8 +2,7 @@ import { z } from "zod"
 
 // Table validations
 export const createTableSchema = z.object({
-  number: z.number().int().positive("Nomor meja harus angka positif"),
-  code: z.string().min(1, "Kode meja wajib diisi").max(10, "Kode meja maksimal 10 karakter"),
+  name: z.string().min(1, "Nama meja wajib diisi").max(50, "Nama meja maksimal 50 karakter"),
   slug: z.string().min(1, "Slug wajib diisi")
 })
 
