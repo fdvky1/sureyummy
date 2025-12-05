@@ -3,7 +3,6 @@ import { getAuthSession } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import MenuItemList from "./MenuItemList"
-import Sidebar from "@/components/Sidebar"
 
 export default async function Page(){
     const session = await getAuthSession()
@@ -20,9 +19,7 @@ export default async function Page(){
     const menuItems = result.success && result.data ? result.data : []
 
     return (
-        <div className="flex">
-            <Sidebar role={session.user.role} userName={session.user.name} />
-            <div className="flex-1 min-h-screen bg-base-200 p-8">
+        <div className="min-h-screen bg-base-200 p-8">
                 <div className="max-w-7xl mx-auto">
                     <div className="flex items-center justify-between mb-8">
                         <div>
@@ -54,7 +51,7 @@ export default async function Page(){
                         <MenuItemList menuItems={menuItems} />
                     )}
                 </div>
-            </div>
         </div>
     )
+}
 }

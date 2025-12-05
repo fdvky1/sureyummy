@@ -1,7 +1,6 @@
 import { getMonthlyReport } from "../actions"
 import { getAuthSession } from "@/lib/auth"
 import { redirect } from "next/navigation"
-import Sidebar from "@/components/Sidebar"
 import ReportsView from "./ReportsView"
 
 export const dynamic = 'force-dynamic'
@@ -32,15 +31,10 @@ export default async function Page({
     const report = reportResult.success && reportResult.data ? reportResult.data : null
 
     return (
-        <div className="flex">
-            <Sidebar role={session.user.role} userName={session.user.name} />
-            <div className="flex-1">
-                <ReportsView 
-                    report={report}
-                    currentYear={year}
-                    currentMonth={month}
-                />
-            </div>
-        </div>
+        <ReportsView 
+            report={report}
+            currentYear={year}
+            currentMonth={month}
+        />
     )
 }

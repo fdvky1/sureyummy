@@ -1,5 +1,7 @@
 "use client"
 
+import { useSession } from "next-auth/react"
+import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
@@ -11,16 +13,28 @@ import {
   RiTableLine,
   RiMoneyDollarCircleLine,
   RiKnifeLine,
-  RiLogoutBoxRLine
+  RiLogoutBoxRLine,
+  RiMenuLine,
+  RiCloseLine
 } from '@remixicon/react'
 
-type SidebarProps = {
-  role: 'ADMIN' | 'CASHIER' | 'KITCHEN_STAFF'
-  userName?: string | null
-}
-
-export default function Sidebar({ role, userName }: SidebarProps) {
+export default function LayoutWithSidebar({ children }: { children: React.ReactNode }) {
+  const { data: session, status } = useSession()
+  const [sidebarOpen, setSidebarOpen] = useState(true)
   const pathname = usePathname()
+
+  // Don't show sidebar on auth pages
+  if (pathname.startsWith('/signin') || pathname.startsWith('/table/')) {
+    return <>{children}</>
+  }
+
+  // Don't show sidebar if not authenticated
+  if (status === 'unauthenticated') {
+    return <>{children}</>
+  }
+
+  const role = session?.user?.role as 'ADMIN' | 'CASHIER' | 'KITCHEN_STAFF' | undefined
+  const userName = session?.user?.name
 
   const adminMenu = [
     { href: '/dashboard', icon: RiDashboardLine, label: 'Dashboard' },
@@ -45,8 +59,8 @@ export default function Sidebar({ role, userName }: SidebarProps) {
 
   const menu = role === 'ADMIN' ? adminMenu : role === 'CASHIER' ? cashierMenu : kitchenMenu
 
-  return (
-    <aside className="bg-base-100 w-64 min-h-screen shadow-xl flex flex-col">
+  const SidebarContent = () => (
+    <>
       {/* Logo & Brand */}
       <div className="p-6 border-b border-base-300">
         <div className="flex items-center gap-2">
@@ -74,7 +88,7 @@ export default function Sidebar({ role, userName }: SidebarProps) {
       </div>
 
       {/* Navigation Menu */}
-      <nav className="flex-1 p-4">
+      <nav className="flex-1 p-4 overflow-y-auto">
         <ul className="menu menu-sm gap-1">
           {menu.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
@@ -83,6 +97,12 @@ export default function Sidebar({ role, userName }: SidebarProps) {
                 <Link 
                   href={item.href}
                   className={isActive ? 'active' : ''}
+                  onClick={() => {
+                    // Close sidebar on mobile when clicking a link
+                    if (window.innerWidth < 1024) {
+                      setSidebarOpen(false)
+                    }
+                  }}
                 >
                   <item.icon className="w-5 h-5" />
                   {item.label}
@@ -103,6 +123,56 @@ export default function Sidebar({ role, userName }: SidebarProps) {
           Keluar
         </button>
       </div>
-    </aside>
+    </>
+  )
+
+  return (
+    <div className="drawer lg:drawer-open">
+      <input 
+        id="sidebar-drawer" 
+        type="checkbox" 
+        className="drawer-toggle" 
+        checked={sidebarOpen}
+        onChange={(e) => setSidebarOpen(e.target.checked)}
+      />
+      
+      <div className="drawer-content flex flex-col">
+        {/* Mobile Header with Toggle */}
+        <div className="lg:hidden sticky top-0 z-30 flex items-center gap-2 bg-base-100 border-b border-base-300 px-4 py-3 shadow-sm">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="btn btn-ghost btn-sm btn-square"
+            aria-label="Toggle sidebar"
+          >
+            {sidebarOpen ? (
+              <RiCloseLine className="w-6 h-6" />
+            ) : (
+              <RiMenuLine className="w-6 h-6" />
+            )}
+          </button>
+          <div className="flex items-center gap-2">
+            <RiRestaurantLine className="w-6 h-6 text-primary" />
+            <h1 className="text-lg font-bold text-primary">SureYummy</h1>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <main className="flex-1">
+          {children}
+        </main>
+      </div>
+
+      {/* Sidebar */}
+      <div className="drawer-side z-40">
+        <label 
+          htmlFor="sidebar-drawer" 
+          className="drawer-overlay"
+          onClick={() => setSidebarOpen(false)}
+        ></label>
+        <aside className="bg-base-100 w-64 min-h-screen shadow-xl flex flex-col">
+          <SidebarContent />
+        </aside>
+      </div>
+    </div>
   )
 }
