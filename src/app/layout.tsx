@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import Toast from "@/components/Toast";
-import { SessionProvider } from "next-auth/react";
+import Providers from "@/components/Providers";
 import LayoutWithSidebar from "@/components/LayoutWithSidebar";
 
 const jakartaSans = Plus_Jakarta_Sans({
@@ -26,12 +26,12 @@ export default function RootLayout({
       <body
         className={`${jakartaSans.variable} antialiased`}
       >
-        <SessionProvider>
+        <Providers>
           <Toast/>
           <LayoutWithSidebar>
             {children}
           </LayoutWithSidebar>
-        </SessionProvider>
+        </Providers>
       </body>
     </html>
   );
