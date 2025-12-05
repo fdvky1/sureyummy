@@ -23,7 +23,7 @@ enum Role {
 enum TableStatus {
   AVAILABLE
   OCCUPIED
-  RESERVED
+  // RESERVED // Future feature
   OUT_OF_SERVICE
 }
 
@@ -75,10 +75,10 @@ model MenuItem {
 
 model Table {
   id        String   @id @default(uuid())
-  number    Int      @unique
-  code  String   @unique
-  slug String   @unique
-  status TableStatus @default(AVAILABLE)
+  name      String   @unique // Nama meja (e.g. "Meja 1", "VIP 1")
+  // code      String   @unique // Future: untuk reserved table access
+  slug      String   @unique // Slugified name untuk URL
+  status    TableStatus @default(AVAILABLE)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
