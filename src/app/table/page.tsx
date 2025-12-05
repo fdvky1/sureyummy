@@ -23,11 +23,11 @@ export default async function Page(){
         <div className="min-h-screen bg-base-200 p-8">
             <div className="max-w-7xl mx-auto">
                 <div className="flex items-center justify-between mb-8">
-                    <div>
+                    <div className="hidden sm:block">
                         <h1 className="text-3xl font-bold">Kelola Meja</h1>
                         <p className="text-base-content/70 mt-2">Atur dan kelola meja restoran</p>
                     </div>
-                    <Link href="/table/create" className="btn btn-primary">
+                    <Link href="/table/create" className="btn btn-primary w-full sm:w-auto">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                             <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
                         </svg>
