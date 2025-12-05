@@ -25,8 +25,8 @@ type Order = {
     createdAt: string | Date
     table: {
         id: string
-        code: string
-        number: number
+        name: string
+        slug: string
     }
     orderItems: OrderItem[]
 }
@@ -191,7 +191,7 @@ export default function LiveOrderView({ initialOrders }: { initialOrders: Order[
                                     <div className="card-body">
                                         <div className="flex items-start justify-between">
                                             <div>
-                                                <h2 className="card-title text-2xl">Meja {order.table.code}</h2>
+                                                <h2 className="card-title text-2xl">{order.table.name}</h2>
                                                 <p className="text-xs text-base-content/70">
                                                     {new Date(order.createdAt).toLocaleTimeString('id-ID')}
                                                 </p>
