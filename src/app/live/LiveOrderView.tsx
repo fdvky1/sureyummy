@@ -6,6 +6,7 @@ import { updateOrderStatus } from "./actions"
 import { useRouter } from "next/navigation"
 import { OrderStatus } from "@/generated/prisma/browser"
 import useToastStore from "@/stores/toast"
+import { getOrderStatusLabel } from "@/lib/enumHelpers"
 
 type OrderItem = {
     id: string
@@ -104,19 +105,10 @@ export default function LiveOrderView({ initialOrders }: { initialOrders: Order[
             COMPLETED: 'badge-neutral',
             CANCELLED: 'badge-error'
         }
-        
-        const labels = {
-            PENDING: 'Menunggu',
-            CONFIRMED: 'Dikonfirmasi',
-            PREPARING: 'Sedang Dimasak',
-            READY: 'Siap',
-            COMPLETED: 'Selesai',
-            CANCELLED: 'Dibatalkan'
-        }
 
         return (
             <span className={`badge ${badges[status]} badge-lg`}>
-                {labels[status]}
+                {getOrderStatusLabel(status)}
             </span>
         )
     }
