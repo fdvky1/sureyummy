@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from "react"
-import { createOrder } from "./actions"
+import { createOrder, getAIUpsellRecommendations } from "./actions"
 import { useRouter } from "next/navigation"
 import MenuCard from "@/components/MenuCard"
 import Cart from "@/components/Cart"
+import UpsellModal from "@/components/UpsellModal"
 import { PaymentMethod } from "@/generated/prisma/browser"
 import { createOrderSchema } from "@/lib/validations"
 import { z } from "zod"
@@ -27,8 +28,8 @@ type CartItem = {
 
 type Table = {
     id: string
-    number: number
-    code: string
+    name: string
+    slug: string
     status: string
 }
 
@@ -43,6 +44,13 @@ export default function KioskView({ table, menuItems, activeOrder }: KioskViewPr
     const [cart, setCart] = useState<CartItem[]>([])
     const [showCart, setShowCart] = useState(false)
     const [showCheckout, setShowCheckout] = useState(false)
+    const [showUpsell, setShowUpsell] = useState(false)
+    const [upsellLoading, setUpsellLoading] = useState(false)
+    const [recommendations, setRecommendations] = useState<Array<{
+        menuItem: MenuItem
+        reason: string
+        confidence: number
+    }>>([])
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.CASH)
     const [loading, setLoading] = useState(false)
     const { setMessage } = useToastStore()
@@ -77,9 +85,45 @@ export default function KioskView({ table, menuItems, activeOrder }: KioskViewPr
         setCart(prev => prev.filter(item => item.id !== id))
     }
 
-    function handleCheckout() {
+    async function handleCheckout() {
         if (cart.length === 0) return
         setShowCart(false)
+        
+        // Get AI recommendations
+        setShowUpsell(true)
+        setUpsellLoading(true)
+        
+        try {
+            const result = await getAIUpsellRecommendations(cart, menuItems)
+            
+            if (result.success && result.recommendations.length > 0) {
+                setRecommendations(result.recommendations)
+                setUpsellLoading(false)
+            } else {
+                // No recommendations, go directly to checkout
+                setShowUpsell(false)
+                setShowCheckout(true)
+            }
+        } catch (error) {
+            console.error('Error getting recommendations:', error)
+            // On error, proceed to checkout
+            setShowUpsell(false)
+            setShowCheckout(true)
+        }
+    }
+
+    function handleAddFromUpsell(item: MenuItem) {
+        handleAddToCart(item)
+        setMessage(`${item.name} ditambahkan ke keranjang`, 'success')
+    }
+
+    function handleSkipUpsell() {
+        setShowUpsell(false)
+        setShowCheckout(true)
+    }
+
+    function handleProceedFromUpsell() {
+        setShowUpsell(false)
         setShowCheckout(true)
     }
 
@@ -138,7 +182,7 @@ export default function KioskView({ table, menuItems, activeOrder }: KioskViewPr
                         </div>
                         <div className="text-right">
                             <p className="text-sm opacity-90">Meja</p>
-                            <p className="text-2xl font-bold">{table.code}</p>
+                            <p className="text-2xl font-bold">{table.name}</p>
                         </div>
                     </div>
                 </div>
@@ -255,8 +299,19 @@ export default function KioskView({ table, menuItems, activeOrder }: KioskViewPr
                 </div>
             )}
 
+            {/* Upsell Modal */}
+            {showUpsell && (
+                <UpsellModal
+                    recommendations={recommendations}
+                    onAddToCart={handleAddFromUpsell}
+                    onSkip={handleSkipUpsell}
+                    onProceedToCheckout={handleProceedFromUpsell}
+                    loading={upsellLoading}
+                />
+            )}
+
             {/* Checkout Modal */}
-            {showCheckout && (
+            {showCheckout && !showUpsell && (
                 <div className="modal modal-open">
                     <div className="modal-box max-w-md">
                         <h3 className="font-bold text-2xl mb-4">Konfirmasi Pesanan</h3>
@@ -264,7 +319,7 @@ export default function KioskView({ table, menuItems, activeOrder }: KioskViewPr
                         <div className="space-y-3 mb-6">
                             <div className="bg-base-200 p-4 rounded-lg">
                                 <p className="text-sm text-base-content/70 mb-2">Meja:</p>
-                                <p className="font-bold text-lg">{table.code}</p>
+                                <p className="font-bold text-lg">{table.name}</p>
                             </div>
 
                             <div className="bg-base-200 p-4 rounded-lg">
