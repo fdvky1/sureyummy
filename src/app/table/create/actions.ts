@@ -13,8 +13,7 @@ export async function createTable(data: CreateTableInput) {
     
     const table = await prisma.table.create({
       data: {
-        number: validated.number,
-        code: validated.code,
+        name: validated.name,
         slug: validated.slug,
         status: TableStatus.AVAILABLE
       }
