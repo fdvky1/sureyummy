@@ -18,7 +18,12 @@ export async function proxy(request: NextRequest) {
     case Role.ADMIN:
       break; // Admin can access all routes
     case Role.CASHIER:
-        if(!["/cashier", "/table", "/table/create"].includes(request.nextUrl.pathname)) return NextResponse.redirect(new URL("/cashier", request.url));
+        // Allow cashier to access: cashier, table management, history, and reports
+        const cashierAllowedPaths = ["/cashier", "/table", "/table/create", "/dashboard/history", "/dashboard/reports"];
+        const isCashierPathAllowed = cashierAllowedPaths.some(path => 
+          request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(path + "/")
+        );
+        if(!isCashierPathAllowed) return NextResponse.redirect(new URL("/cashier", request.url));
       break;
     case Role.KITCHEN_STAFF:
         if(request.nextUrl.pathname != "/live") return NextResponse.redirect(new URL("/live", request.url));
