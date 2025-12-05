@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
+import { RiTrophyLine, RiBarChartBoxLine, RiCalendarLine } from '@remixicon/react'
 
 type MonthlyReport = {
     period: {
@@ -171,7 +172,10 @@ export default function ReportsView({ report, currentYear, currentMonth }: Repor
                     {/* Top Items */}
                     <div className="card bg-base-100 shadow-xl">
                         <div className="card-body">
-                            <h2 className="card-title">🏆 Top 10 Menu Terlaris</h2>
+                            <h2 className="card-title flex items-center gap-2">
+                                <RiTrophyLine className="w-5 h-5 text-warning" />
+                                Top 10 Menu Terlaris
+                            </h2>
                             <div className="divider my-2"></div>
                             
                             {report.topItems.length === 0 ? (
@@ -214,7 +218,10 @@ export default function ReportsView({ report, currentYear, currentMonth }: Repor
                     {/* Category Stats */}
                     <div className="card bg-base-100 shadow-xl">
                         <div className="card-body">
-                            <h2 className="card-title">📊 Penjualan per Kategori</h2>
+                            <h2 className="card-title flex items-center gap-2">
+                                <RiBarChartBoxLine className="w-5 h-5 text-info" />
+                                Penjualan per Kategori
+                            </h2>
                             <div className="divider my-2"></div>
                             
                             {Object.keys(report.categoryStats).length === 0 ? (
@@ -248,7 +255,10 @@ export default function ReportsView({ report, currentYear, currentMonth }: Repor
                 {/* Daily Breakdown */}
                 <div className="card bg-base-100 shadow-xl">
                     <div className="card-body">
-                        <h2 className="card-title">📅 Breakdown Harian</h2>
+                        <h2 className="card-title flex items-center gap-2">
+                            <RiCalendarLine className="w-5 h-5 text-secondary" />
+                            Breakdown Harian
+                        </h2>
                         <div className="divider my-2"></div>
                         
                         {report.dailyStats.length === 0 ? (

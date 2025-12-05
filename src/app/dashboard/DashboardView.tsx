@@ -2,6 +2,16 @@
 
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
+import { 
+  RiMoneyDollarCircleLine,
+  RiCalculatorLine,
+  RiFileListLine,
+  RiCheckboxCircleLine,
+  RiTrophyLine,
+  RiLineChartLine,
+  RiCalendarLine,
+  RiEyeLine
+} from '@remixicon/react'
 
 type DashboardStats = {
     currentMonthRevenue: number
@@ -69,9 +79,7 @@ export default function DashboardView({ stats, userName }: DashboardViewProps) {
                     <div className="stats shadow bg-base-100">
                         <div className="stat">
                             <div className="stat-figure text-primary">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
+                                <RiMoneyDollarCircleLine className="w-8 h-8" />
                             </div>
                             <div className="stat-title">Pendapatan Hari Ini</div>
                             <div className="stat-value text-primary text-2xl">{formatCurrency(stats.todayRevenue)}</div>
@@ -83,9 +91,7 @@ export default function DashboardView({ stats, userName }: DashboardViewProps) {
                     <div className="stats shadow bg-base-100">
                         <div className="stat">
                             <div className="stat-figure text-secondary">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                </svg>
+                                <RiCalculatorLine className="w-8 h-8" />
                             </div>
                             <div className="stat-title">Pendapatan Bulan Ini</div>
                             <div className="stat-value text-secondary text-2xl">{formatCurrency(stats.currentMonthRevenue)}</div>
@@ -111,9 +117,7 @@ export default function DashboardView({ stats, userName }: DashboardViewProps) {
                     <div className="stats shadow bg-base-100">
                         <div className="stat">
                             <div className="stat-figure text-warning">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
+                                <RiFileListLine className="w-8 h-8" />
                             </div>
                             <div className="stat-title">Pesanan Aktif</div>
                             <div className="stat-value text-warning">{stats.activeOrdersCount}</div>
@@ -125,9 +129,7 @@ export default function DashboardView({ stats, userName }: DashboardViewProps) {
                     <div className="stats shadow bg-base-100">
                         <div className="stat">
                             <div className="stat-figure text-success">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
+                                <RiCheckboxCircleLine className="w-8 h-8" />
                             </div>
                             <div className="stat-title">Pesanan Bulan Ini</div>
                             <div className="stat-value text-success">{stats.currentMonthOrderCount}</div>
@@ -140,8 +142,9 @@ export default function DashboardView({ stats, userName }: DashboardViewProps) {
                     {/* Top Selling Items */}
                     <div className="lg:col-span-2 card bg-base-100 shadow-xl">
                         <div className="card-body">
-                            <h2 className="card-title">
-                                🏆 Menu Terlaris Bulan Ini
+                            <h2 className="card-title flex items-center gap-2">
+                                <RiTrophyLine className="w-5 h-5 text-warning" />
+                                Menu Terlaris Bulan Ini
                                 <div className="badge badge-secondary">{currentMonth}</div>
                             </h2>
                             <div className="divider my-2"></div>
@@ -193,7 +196,10 @@ export default function DashboardView({ stats, userName }: DashboardViewProps) {
                     {/* Recent Revenue Chart */}
                     <div className="card bg-base-100 shadow-xl">
                         <div className="card-body">
-                            <h2 className="card-title">📈 Pendapatan Harian</h2>
+                            <h2 className="card-title flex items-center gap-2">
+                                <RiLineChartLine className="w-5 h-5 text-primary" />
+                                Pendapatan Harian
+                            </h2>
                             <div className="divider my-2"></div>
                             
                             {stats.dailyRevenue.length === 0 ? (
