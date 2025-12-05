@@ -9,8 +9,7 @@ import useToastStore from "@/stores/toast"
 
 type Table = {
     id: string
-    number: number
-    code: string
+    name: string
     slug: string
     status: TableStatus
     orders: any[]
@@ -66,7 +65,7 @@ export default function TableList({ tables }: { tables: Table[] }) {
                 <!DOCTYPE html>
                 <html>
                 <head>
-                    <title>QR Code - ${table.code}</title>
+                    <title>QR Code - ${table.name}</title>
                     <style>
                         body {
                             font-family: 'Plus Jakarta Sans', sans-serif;
@@ -112,7 +111,7 @@ export default function TableList({ tables }: { tables: Table[] }) {
                 </head>
                 <body>
                     <div class="container">
-                        <h1>Meja ${table.code}</h1>
+                        <h1>${table.name}</h1>
                         <p class="subtitle">Restoran Nasi Padang</p>
                         <img src="${qrDataUrl}" alt="QR Code" />
                         <p class="instruction">Scan QR Code untuk memesan</p>
@@ -138,17 +137,15 @@ export default function TableList({ tables }: { tables: Table[] }) {
     }
 
     function getStatusBadge(status: TableStatus) {
-        const badges = {
+        const badges: Record<TableStatus, string> = {
             AVAILABLE: 'badge-success',
             OCCUPIED: 'badge-error',
-            RESERVED: 'badge-warning',
             OUT_OF_SERVICE: 'badge-neutral'
         }
         
-        const labels = {
+        const labels: Record<TableStatus, string> = {
             AVAILABLE: 'Tersedia',
             OCCUPIED: 'Terisi',
-            RESERVED: 'Dipesan',
             OUT_OF_SERVICE: 'Tidak Tersedia'
         }
 
@@ -166,8 +163,7 @@ export default function TableList({ tables }: { tables: Table[] }) {
                     <div className="card-body">
                         <div className="flex items-start justify-between">
                             <div>
-                                <h2 className="card-title text-2xl">Meja {table.code}</h2>
-                                <p className="text-sm text-base-content/70">Nomor: {table.number}</p>
+                                <h2 className="card-title text-2xl">{table.name}</h2>
                             </div>
                             {getStatusBadge(table.status)}
                         </div>
@@ -193,7 +189,7 @@ export default function TableList({ tables }: { tables: Table[] }) {
                             >
                                 <option value="AVAILABLE">Tersedia</option>
                                 <option value="OCCUPIED">Terisi</option>
-                                <option value="RESERVED">Dipesan</option>
+                                {/* <option value="RESERVED">Dipesan</option> */}
                                 <option value="OUT_OF_SERVICE">Tidak Tersedia</option>
                             </select>
                         </div>
