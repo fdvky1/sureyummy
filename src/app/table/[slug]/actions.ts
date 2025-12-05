@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { OrderStatus, PaymentMethod, TableStatus } from "@/generated/prisma/client"
 import { createOrderSchema, CreateOrderInput } from "@/lib/validations"
+import { getUpsellRecommendations } from "@/lib/genkit"
 import { z } from "zod"
 
 export async function getTableBySlug(slug: string) {
@@ -82,5 +83,24 @@ export async function createOrder(data: CreateOrderInput) {
     }
     console.error('Error creating order:', error)
     return { success: false, error: 'Gagal membuat pesanan' }
+  }
+}
+
+export async function getAIUpsellRecommendations(
+  cartItems: Array<{ id: string; name: string; price: number; quantity: number }>,
+  menuItems: Array<{
+    id: string
+    name: string
+    description?: string | null
+    price: number
+    image?: string | null
+  }>
+) {
+  try {
+    const result = await getUpsellRecommendations(cartItems, menuItems)
+    return result
+  } catch (error) {
+    console.error('Error getting AI recommendations:', error)
+    return { success: false, error: 'Failed to get recommendations', recommendations: [] }
   }
 }
