@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
 import { RiTrophyLine, RiBarChartBoxLine, RiCalendarLine } from '@remixicon/react'
+import { MenuCategory } from "@/generated/prisma/browser"
+import { getMenuCategoryLabel } from "@/lib/enumHelpers"
 
 type MonthlyReport = {
     period: {
@@ -235,7 +237,7 @@ export default function ReportsView({ report, currentYear, currentMonth }: Repor
                                         .map(([category, stats]) => (
                                             <div key={category} className="p-3 bg-base-200 rounded-lg">
                                                 <div className="flex justify-between items-center mb-2">
-                                                    <span className="font-semibold">{category}</span>
+                                                    <span className="font-semibold">{getMenuCategoryLabel(category as MenuCategory)}</span>
                                                     <span className="badge badge-primary">{stats.quantity} items</span>
                                                 </div>
                                                 <div className="flex justify-between items-center">
