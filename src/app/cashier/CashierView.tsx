@@ -189,11 +189,11 @@ export default function CashierView({
             <div className="bg-primary text-primary-content p-6 shadow-lg">
                 <div className="max-w-7xl mx-auto">
                     <div className="flex items-center justify-between">
-                        <div>
+                        <div className="hidden sm:block">
                             <h1 className="text-3xl font-bold">Kasir Dashboard</h1>
                             <p className="text-sm opacity-90 mt-1">Kelola pembayaran dan status meja</p>
                         </div>
-                        <div className="stats shadow bg-primary-content text-primary">
+                        <div className="stats shadow bg-primary-content text-primary w-full sm:w-auto">
                             <div className="stat">
                                 <div className="stat-title text-xs">Meja Terisi</div>
                                 <div className="stat-value text-2xl">{occupiedTables.length}</div>

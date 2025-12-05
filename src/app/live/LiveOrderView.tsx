@@ -150,12 +150,12 @@ export default function LiveOrderView({ initialOrders }: { initialOrders: Order[
             {/* Header */}
             <div className="bg-primary text-primary-content p-6 shadow-lg">
                 <div className="max-w-7xl mx-auto">
-                    <div className="flex items-center justify-between">
-                        <div>
+                    <div className="flex items-center sm:justify-between">
+                        <div className="hidden sm:block">
                             <h1 className="text-3xl font-bold">Kitchen Dashboard</h1>
                             <p className="text-sm opacity-90 mt-1">Monitor pesanan secara real-time</p>
                         </div>
-                        <div className="stats shadow bg-primary-content text-primary">
+                        <div className="stats shadow bg-primary-content text-primary w-full sm:w-auto">
                             <div className="stat">
                                 <div className="stat-title text-xs">Pesanan Aktif</div>
                                 <div className="stat-value text-2xl">{orders.length}</div>

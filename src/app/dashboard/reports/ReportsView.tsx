@@ -88,7 +88,7 @@ export default function ReportsView({ report, currentYear, currentMonth }: Repor
                 <div className="card bg-base-100 shadow-xl mb-6">
                     <div className="card-body">
                         <div className="flex flex-wrap gap-4 items-center">
-                            <div className="form-control">
+                            <div className="form-control w-full sm:w-auto">
                                 <label className="label">
                                     <span className="label-text">Bulan</span>
                                 </label>
@@ -102,7 +102,7 @@ export default function ReportsView({ report, currentYear, currentMonth }: Repor
                                     ))}
                                 </select>
                             </div>
-                            <div className="form-control">
+                            <div className="form-control w-full sm:w-auto">
                                 <label className="label">
                                     <span className="label-text">Tahun</span>
                                 </label>
