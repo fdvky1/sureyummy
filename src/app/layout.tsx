@@ -3,11 +3,12 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import Toast from "@/components/Toast";
 import Providers from "@/components/Providers";
-import LayoutWithSidebar from "@/components/LayoutWithSidebar";
+import Header from "@/components/Header";
+import Sidebar from "@/components/Sidebar";
 
 const jakartaSans = Plus_Jakarta_Sans({
-  variable: "--font-plus-jakarta-sans",
-  subsets: ["latin", "latin-ext", "vietnamese", "cyrillic-ext"],
+  variable: "--font-jakarta-sans",
+  subsets: ["latin"],
 });
 
 
@@ -24,13 +25,19 @@ export default function RootLayout({
   return (
     <html lang="id" data-theme="cozy-warm">
       <body
-        className={`${jakartaSans.variable} antialiased`}
+        className={`${jakartaSans.className} ${jakartaSans.variable} antialiased`}
       >
         <Providers>
           <Toast/>
-          <LayoutWithSidebar>
-            {children}
-          </LayoutWithSidebar>
+          <div className="flex h-screen overflow-hidden">
+            <Sidebar />
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <Header />
+              <main className="flex-1 overflow-auto">
+                {children}
+              </main>
+            </div>
+          </div>
         </Providers>
       </body>
     </html>
