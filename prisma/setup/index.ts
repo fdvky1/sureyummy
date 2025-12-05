@@ -70,7 +70,7 @@ async function setupMenu() {
   console.log('🍽️  Setting up menu items...')
 
   // Read menu.json
-  const menuPath = join(__dirname, '../menu.json')
+  const menuPath = join(__dirname, './menu.json')
   const menuData = JSON.parse(readFileSync(menuPath, 'utf-8'))
 
   let created = 0
@@ -91,7 +91,8 @@ async function setupMenu() {
         name: item.name,
         description: item.description,
         price: item.price,
-        image: null // Kosongkan dulu seperti diminta
+        category: item.category || null,
+        image: null
       }
     })
 

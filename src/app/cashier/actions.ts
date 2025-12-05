@@ -68,7 +68,8 @@ export async function getActiveOrders() {
             menuItem: true
           }
         },
-        table: true
+        table: true,
+        session: true
       },
       orderBy: {
         createdAt: 'desc'
@@ -102,33 +103,82 @@ export async function updateOrderStatus(id: string, status: OrderStatus) {
 
 export async function completeOrder(id: string) {
   try {
-    const order = await prisma.order.update({
+    const order = await prisma.order.findUnique({
       where: { id },
-      data: { 
-        status: OrderStatus.COMPLETED,
-        isPaid: true
-      },
       include: {
-        table: true
+        table: true,
+        session: true,
       }
     })
 
-    // Check if table has any other active orders
-    const activeOrders = await prisma.order.findMany({
-      where: {
-        tableId: order.tableId,
-        status: {
-          notIn: [OrderStatus.COMPLETED, OrderStatus.CANCELLED]
+    if (!order) {
+      return { success: false, error: 'Order not found' }
+    }
+
+    // If order has a session, complete all orders in that session
+    if (order.sessionId && order.session) {
+      // Get all orders in this session
+      const sessionOrders = await prisma.order.findMany({
+        where: {
+          sessionId: order.sessionId,
+          status: {
+            notIn: [OrderStatus.COMPLETED, OrderStatus.CANCELLED]
+          }
         }
-      }
-    })
+      })
 
-    // If no active orders, set table to AVAILABLE
-    if (activeOrders.length === 0) {
+      // Complete all orders in the session
+      await prisma.order.updateMany({
+        where: {
+          sessionId: order.sessionId,
+          status: {
+            notIn: [OrderStatus.COMPLETED, OrderStatus.CANCELLED]
+          }
+        },
+        data: {
+          status: OrderStatus.COMPLETED,
+          isPaid: true
+        }
+      })
+
+      // Deactivate the session
+      await prisma.session.update({
+        where: { id: order.sessionId },
+        data: { isActive: false }
+      })
+
+      // Set table to AVAILABLE
       await prisma.table.update({
         where: { id: order.tableId },
         data: { status: TableStatus.AVAILABLE }
       })
+    } else {
+      // No session, complete just this order
+      await prisma.order.update({
+        where: { id },
+        data: {
+          status: OrderStatus.COMPLETED,
+          isPaid: true
+        }
+      })
+
+      // Check if table has any other active orders
+      const activeOrders = await prisma.order.findMany({
+        where: {
+          tableId: order.tableId,
+          status: {
+            notIn: [OrderStatus.COMPLETED, OrderStatus.CANCELLED]
+          }
+        }
+      })
+
+      // If no active orders, set table to AVAILABLE
+      if (activeOrders.length === 0) {
+        await prisma.table.update({
+          where: { id: order.tableId },
+          data: { status: TableStatus.AVAILABLE }
+        })
+      }
     }
 
     revalidatePath('/live')
@@ -138,5 +188,51 @@ export async function completeOrder(id: string) {
   } catch (error) {
     console.error('Error completing order:', error)
     return { success: false, error: 'Failed to complete order' }
+  }
+}
+
+export async function getSessionOrders(sessionId: string) {
+  try {
+    const session = await prisma.session.findUnique({
+      where: { id: sessionId },
+      include: {
+        orders: {
+          include: {
+            orderItems: {
+              include: {
+                menuItem: true
+              }
+            }
+          },
+          orderBy: {
+            createdAt: 'asc'
+          }
+        },
+        table: true
+      }
+    })
+
+    if (!session) {
+      return { success: false, error: 'Session not found' }
+    }
+
+    // Calculate totals
+    const grandTotal = session.orders.reduce((sum, order) => sum + order.totalPrice, 0)
+    const totalItems = session.orders.reduce((sum, order) => 
+      sum + order.orderItems.reduce((itemSum, item) => itemSum + item.quantity, 0), 0
+    )
+
+    return {
+      success: true,
+      data: {
+        session,
+        grandTotal,
+        totalItems,
+        batches: session.orders.length
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching session orders:', error)
+    return { success: false, error: 'Failed to fetch session orders' }
   }
 }

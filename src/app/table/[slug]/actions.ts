@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 import { OrderStatus, PaymentMethod, TableStatus } from "@/generated/prisma/client"
 import { createOrderSchema, CreateOrderInput } from "@/lib/validations"
 import { getUpsellRecommendations } from "@/lib/genkit"
+import { getOrCreateSession } from "@/lib/session"
 import { z } from "zod"
 
 export async function getTableBySlug(slug: string) {
@@ -43,9 +44,22 @@ export async function createOrder(data: CreateOrderInput) {
     // Validate input
     const validated = createOrderSchema.parse(data)
     
+    // Get or create session for this table
+    const { sessionId: sessionUUID } = await getOrCreateSession(validated.tableId)
+    
+    // Get the session record from database
+    const session = await prisma.session.findUnique({
+      where: { sessionId: sessionUUID },
+    })
+    
+    if (!session) {
+      throw new Error('Failed to create or retrieve session')
+    }
+    
     const order = await prisma.order.create({
       data: {
         tableId: validated.tableId,
+        sessionId: session.id, // Link to session
         totalPrice: validated.totalPrice,
         status: OrderStatus.PENDING,
         paymentMethod: validated.paymentMethod as PaymentMethod | undefined,
@@ -94,6 +108,7 @@ export async function getAIUpsellRecommendations(
     description?: string | null
     price: number
     image?: string | null
+    category?: string | null
   }>
 ) {
   try {

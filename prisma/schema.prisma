@@ -33,6 +33,7 @@ enum MenuCategory {
   DESSERT
   BEVERAGE
   SIDE_DISH
+  CONDIMENT
 }
 
 enum OrderStatus {
@@ -61,11 +62,12 @@ model User {
 }
 
 model MenuItem {
-  id          String   @id @default(uuid())
+  id          String        @id @default(uuid())
   name        String
-  image      String?
+  image       String?
   description String?
   price       Float
+  category    MenuCategory?
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -84,6 +86,24 @@ model Table {
   updatedAt DateTime @updatedAt
 
   orders Order[]
+  sessions Session[]
+}
+
+model Session {
+  id         String   @id @default(uuid())
+  sessionId  String   @unique // UUID untuk cookie user
+  table      Table    @relation(fields: [tableId], references: [id])
+  tableId    String
+  expiresAt  DateTime // Session expires after 1 day
+  isActive   Boolean  @default(true)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  orders Order[]
+
+  @@index([tableId, isActive])
+  @@index([sessionId])
 }
 
 model OrderItem {
@@ -103,6 +123,8 @@ model Order {
   id         String    @id @default(uuid())
   table      Table     @relation(fields: [tableId], references: [id])
   tableId    String
+  session    Session?  @relation(fields: [sessionId], references: [id])
+  sessionId  String?
   
   totalPrice Float
   status     OrderStatus @default(PENDING)
@@ -113,4 +135,7 @@ model Order {
   updatedAt  DateTime  @updatedAt
 
   orderItems OrderItem[]
+
+  @@index([sessionId])
+  @@index([tableId, status])
 }

@@ -14,49 +14,47 @@ dotenv.config()
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
 const prisma = new PrismaClient({ adapter })
 
-async function setupMenu() {
-  console.log('🍽️  Setting up menu items...')
+async function updateMenuCategories() {
+  console.log('🏷️  Updating menu categories...')
 
   // Read menu.json
   const menuPath = join(__dirname, './menu.json')
   const menuData = JSON.parse(readFileSync(menuPath, 'utf-8'))
 
-  let created = 0
-  let skipped = 0
+  let updated = 0
+  let notFound = 0
 
   for (const item of menuData) {
     const existingItem = await prisma.menuItem.findFirst({
       where: { name: item.name }
     })
 
-    if (existingItem) {
-      skipped++
+    if (!existingItem) {
+      notFound++
+      console.log(`  ⚠️  Menu not found: ${item.name}`)
       continue
     }
 
-    await prisma.menuItem.create({
-      data: {
-        name: item.name,
-        description: item.description,
-        price: item.price,
-        category: item.category || null,
-        image: null
-      }
-    })
-
-    created++
+    // Update category if it exists in JSON
+    if (item.category) {
+      await prisma.menuItem.update({
+        where: { id: existingItem.id },
+        data: { category: item.category }
+      })
+      updated++
+    }
   }
 
-  console.log(`  ✅ Created ${created} menu items`)
-  if (skipped > 0) {
-    console.log(`  ⏭️  Skipped ${skipped} existing items`)
+  console.log(`  ✅ Updated ${updated} menu items with categories`)
+  if (notFound > 0) {
+    console.log(`  ⚠️  ${notFound} items not found in database`)
   }
-  console.log('\n✨ Menu setup completed!\n')
+  console.log('\n✨ Category update completed!\n')
 }
 
-setupMenu()
+updateMenuCategories()
   .catch((error) => {
-    console.error('❌ Error setting up menu:', error)
+    console.error('❌ Error updating categories:', error)
     process.exit(1)
   })
   .finally(async () => {

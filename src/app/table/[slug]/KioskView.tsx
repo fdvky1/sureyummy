@@ -37,9 +37,11 @@ type KioskViewProps = {
     table: Table
     menuItems: MenuItem[]
     activeOrder: any | null
+    isOccupied: boolean
+    hasValidSession: boolean
 }
 
-export default function KioskView({ table, menuItems, activeOrder }: KioskViewProps) {
+export default function KioskView({ table, menuItems, activeOrder, isOccupied, hasValidSession }: KioskViewProps) {
     const router = useRouter()
     const [cart, setCart] = useState<CartItem[]>([])
     const [showCart, setShowCart] = useState(false)
@@ -188,8 +190,23 @@ export default function KioskView({ table, menuItems, activeOrder }: KioskViewPr
                 </div>
             </div>
 
+            {/* Table Occupied Alert */}
+            {isOccupied && !hasValidSession && (
+                <div className="max-w-7xl mx-auto px-6 mt-6">
+                    <div className="alert alert-warning shadow-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <div>
+                            <h3 className="font-bold">Meja Sedang Digunakan</h3>
+                            <div className="text-sm">Meja ini sedang digunakan oleh customer lain. Silakan tunggu sampai mereka selesai atau pilih meja lain.</div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Active Order Alert */}
-            {activeOrder && (
+            {activeOrder && hasValidSession && (
                 <div className="max-w-7xl mx-auto px-6 mt-6">
                     <div className="alert alert-info">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
@@ -206,7 +223,17 @@ export default function KioskView({ table, menuItems, activeOrder }: KioskViewPr
                     {/* Menu Grid */}
                     <div className="lg:col-span-2">
                         <h2 className="text-2xl font-bold mb-4">Menu</h2>
-                        {menuItems.length === 0 ? (
+                        {isOccupied && !hasValidSession ? (
+                            <div className="card bg-base-100 shadow-xl">
+                                <div className="card-body items-center text-center py-16">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-warning mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                    </svg>
+                                    <p className="text-lg font-semibold">Meja Sedang Digunakan</p>
+                                    <p className="text-sm text-base-content/70">Menu tidak dapat diakses saat meja sedang digunakan</p>
+                                </div>
+                            </div>
+                        ) : menuItems.length === 0 ? (
                             <div className="card bg-base-100 shadow-xl">
                                 <div className="card-body items-center text-center py-16">
                                     <p className="text-lg">Belum ada menu tersedia</p>
@@ -226,19 +253,21 @@ export default function KioskView({ table, menuItems, activeOrder }: KioskViewPr
                     </div>
 
                     {/* Cart - Desktop Only */}
-                    <div className="hidden lg:block lg:col-span-1">
-                        <Cart 
-                            items={cart}
-                            onUpdateQuantity={handleUpdateQuantity}
-                            onRemove={handleRemove}
-                            onCheckout={handleCheckout}
-                        />
-                    </div>
+                    {!isOccupied || hasValidSession ? (
+                        <div className="hidden lg:block lg:col-span-1">
+                            <Cart 
+                                items={cart}
+                                onUpdateQuantity={handleUpdateQuantity}
+                                onRemove={handleRemove}
+                                onCheckout={handleCheckout}
+                            />
+                        </div>
+                    ) : null}
                 </div>
             </div>
 
             {/* Floating Cart Button - Mobile Only */}
-            {cart.length > 0 && (
+            {cart.length > 0 && (!isOccupied || hasValidSession) && (
                 <div className="fixed bottom-6 left-0 right-0 px-6 lg:hidden z-50">
                     <button 
                         className="btn btn-primary w-full shadow-2xl"
