@@ -3,7 +3,9 @@
 import { useState } from "react"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
-import { OrderStatus } from "@/generated/prisma/browser"
+import { OrderStatus, MenuCategory, PaymentMethod } from "@/generated/prisma/browser"
+import { getMenuCategoryLabel, getOrderStatusLabel, getPaymentMethodLabel } from "@/lib/enumHelpers"
+import ReceiptPrint from "@/components/ReceiptPrint"
 
 type Order = {
     id: string
@@ -61,19 +63,10 @@ export default function HistoryView({ orders }: HistoryViewProps) {
             COMPLETED: 'badge-neutral',
             CANCELLED: 'badge-error'
         }
-        
-        const labels = {
-            PENDING: 'Menunggu',
-            CONFIRMED: 'Dikonfirmasi',
-            PREPARING: 'Sedang Dimasak',
-            READY: 'Siap',
-            COMPLETED: 'Selesai',
-            CANCELLED: 'Dibatalkan'
-        }
 
         return (
             <span className={`badge ${badges[status]}`}>
-                {labels[status]}
+                {getOrderStatusLabel(status)}
             </span>
         )
     }
@@ -232,12 +225,15 @@ export default function HistoryView({ orders }: HistoryViewProps) {
                                                     )}
                                                 </td>
                                                 <td>
-                                                    <button 
-                                                        className="btn btn-ghost btn-xs"
-                                                        onClick={() => setSelectedOrder(order)}
-                                                    >
-                                                        Detail
-                                                    </button>
+                                                    <div className="flex gap-1">
+                                                        <ReceiptPrint order={order} />
+                                                        <button 
+                                                            className="btn btn-ghost btn-xs"
+                                                            onClick={() => setSelectedOrder(order)}
+                                                        >
+                                                            Detail
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -287,7 +283,7 @@ export default function HistoryView({ orders }: HistoryViewProps) {
                                         <div className="flex-1">
                                             <p className="font-medium">{item.menuItem.name}</p>
                                             <p className="text-xs text-base-content/70">
-                                                {item.menuItem.category || 'N/A'} • {formatCurrency(item.price)}
+                                                {getMenuCategoryLabel(item.menuItem.category)} • {formatCurrency(item.price)}
                                             </p>
                                         </div>
                                         <div className="text-right">
@@ -310,12 +306,13 @@ export default function HistoryView({ orders }: HistoryViewProps) {
                             {selectedOrder.paymentMethod && (
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-base-content/70">Metode Pembayaran</span>
-                                    <span className="font-medium">{selectedOrder.paymentMethod}</span>
+                                    <span className="font-medium">{getPaymentMethodLabel(selectedOrder.paymentMethod as PaymentMethod)}</span>
                                 </div>
                             )}
                         </div>
 
                         <div className="modal-action">
+                            <ReceiptPrint order={selectedOrder} className="btn-primary" />
                             <button className="btn" onClick={() => setSelectedOrder(null)}>Tutup</button>
                         </div>
                     </div>
