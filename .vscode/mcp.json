@@ -1,8 +1,16 @@
 {
-  "servers": {
-   "daisyUI": {
-     "type": "sse",
-     "url": "https://gitmcp.io/saadeghi/daisyui"
-   }
-  }
+	"servers": {
+		"daisyUI": {
+			"type": "http",
+			"url": "https://gitmcp.io/saadeghi/daisyui"
+		},
+		"genkit": {
+			"type": "stdio",
+			"command": "genkit",
+			"args": [
+				"mcp"
+			]
+		}
+	},
+	"inputs": []
 }
