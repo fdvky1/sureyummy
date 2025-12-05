@@ -5,8 +5,10 @@ import { getActiveOrders } from "./actions"
 import { getTables } from "@/app/table/actions"
 import { completeOrder } from "./actions"
 import { useRouter } from "next/navigation"
-import { OrderStatus, TableStatus } from "@/generated/prisma/browser"
+import { OrderStatus, TableStatus, PaymentMethod } from "@/generated/prisma/browser"
 import useToastStore from "@/stores/toast"
+import ReceiptPrint from "@/components/ReceiptPrint"
+import { getPaymentMethodLabel } from "@/lib/enumHelpers"
 
 type OrderItem = {
     id: string
@@ -59,6 +61,8 @@ export default function CashierView({
     const [tables, setTables] = useState<Table[]>(initialTables)
     const [selectedTable, setSelectedTable] = useState<string | null>(null)
     const [completingId, setCompletingId] = useState<string | null>(null)
+    const [completedOrder, setCompletedOrder] = useState<Order | null>(null)
+    const [showReceiptDialog, setShowReceiptDialog] = useState(false)
     const { setMessage } = useToastStore()
 
     useEffect(() => {
@@ -83,12 +87,19 @@ export default function CashierView({
     async function handleCompleteOrder(orderId: string) {
         if (!confirm('Apakah pembayaran sudah diterima?')) return
         
+        // Find the order before completing
+        const orderToComplete = orders.find(o => o.id === orderId)
+        if (!orderToComplete) return
+        
         setCompletingId(orderId)
         const result = await completeOrder(orderId)
         
         if (result.success) {
-            router.refresh()
+            // Show receipt dialog with completed order data
+            setCompletedOrder(orderToComplete)
+            setShowReceiptDialog(true)
             setMessage('Pesanan berhasil diselesaikan', 'success')
+            
             // Refresh data
             const [ordersResult, tablesResult] = await Promise.all([
                 getActiveOrders(),
@@ -105,6 +116,12 @@ export default function CashierView({
             setMessage('Gagal menyelesaikan pesanan', 'error')
         }
         setCompletingId(null)
+    }
+
+    function handleCloseReceiptDialog() {
+        setShowReceiptDialog(false)
+        setCompletedOrder(null)
+        router.refresh()
     }
 
     function getStatusBadge(status: OrderStatus) {
@@ -326,27 +343,39 @@ export default function CashierView({
                                                                     Rp {grandTotal.toLocaleString('id-ID')}
                                                                 </p>
                                                             </div>
-                                                            {allReady && (
-                                                                <button
-                                                                    className="btn btn-success btn-lg"
-                                                                    onClick={() => handleCompleteOrder(firstOrder.id)}
-                                                                    disabled={completingId === firstOrder.id}
-                                                                >
-                                                                    {completingId === firstOrder.id ? (
-                                                                        <>
-                                                                            <span className="loading loading-spinner"></span>
-                                                                            Memproses...
-                                                                        </>
-                                                                    ) : (
-                                                                        <>
-                                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                                                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                                                            </svg>
-                                                                            Bayar & Selesaikan
-                                                                        </>
-                                                                    )}
-                                                                </button>
-                                                            )}
+                                                            <div className="flex gap-2">
+                                                                {allReady && (
+                                                                    <>
+                                                                        <ReceiptPrint 
+                                                                            order={{ 
+                                                                                ...firstOrder, 
+                                                                                totalPrice: grandTotal,
+                                                                                orderItems: sessionOrders.flatMap(o => o.orderItems)
+                                                                            }} 
+                                                                            className="btn-primary btn-lg"
+                                                                        />
+                                                                        <button
+                                                                            className="btn btn-success btn-lg"
+                                                                            onClick={() => handleCompleteOrder(firstOrder.id)}
+                                                                            disabled={completingId === firstOrder.id}
+                                                                        >
+                                                                            {completingId === firstOrder.id ? (
+                                                                                <>
+                                                                                    <span className="loading loading-spinner"></span>
+                                                                                    Memproses...
+                                                                                </>
+                                                                            ) : (
+                                                                                <>
+                                                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                                                    </svg>
+                                                                                    Bayar & Selesaikan
+                                                                                </>
+                                                                            )}
+                                                                        </button>
+                                                                    </>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                         {!allReady && (
                                                             <p className="text-xs text-warning">
@@ -390,31 +419,36 @@ export default function CashierView({
                                                         </p>
                                                         {order.paymentMethod && (
                                                             <p className="text-xs text-base-content/70 mt-1">
-                                                                via {order.paymentMethod}
+                                                                via {getPaymentMethodLabel(order.paymentMethod as PaymentMethod)}
                                                             </p>
                                                         )}
                                                     </div>
-                                                    {order.status === OrderStatus.READY && (
-                                                        <button
-                                                            className="btn btn-success"
-                                                            onClick={() => handleCompleteOrder(order.id)}
-                                                            disabled={completingId === order.id}
-                                                        >
-                                                            {completingId === order.id ? (
-                                                                <>
-                                                                    <span className="loading loading-spinner"></span>
-                                                                    Memproses...
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                                                    </svg>
-                                                                    Selesaikan Pesanan
-                                                                </>
-                                                            )}
-                                                        </button>
-                                                    )}
+                                                    <div className="flex gap-2">
+                                                        {order.status === OrderStatus.READY && (
+                                                            <>
+                                                                <ReceiptPrint order={order} className="btn-primary" />
+                                                                <button
+                                                                    className="btn btn-success"
+                                                                    onClick={() => handleCompleteOrder(order.id)}
+                                                                    disabled={completingId === order.id}
+                                                                >
+                                                                    {completingId === order.id ? (
+                                                                        <>
+                                                                            <span className="loading loading-spinner"></span>
+                                                                            Memproses...
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                                            </svg>
+                                                                            Selesaikan Pesanan
+                                                                        </>
+                                                                    )}
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}
@@ -425,6 +459,68 @@ export default function CashierView({
                     </div>
                 </div>
             </div>
+
+            {/* Receipt Dialog Modal */}
+            {showReceiptDialog && completedOrder && (
+                <dialog className="modal modal-open">
+                    <div className="modal-box max-w-md">
+                        <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-success" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            Pesanan Selesai!
+                        </h3>
+                        
+                        <div className="space-y-4">
+                            <div className="alert alert-success">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <div>
+                                    <h3 className="font-bold">Pembayaran Diterima</h3>
+                                    <div className="text-xs">Pesanan {completedOrder.table.name} telah diselesaikan</div>
+                                </div>
+                            </div>
+
+                            <div className="bg-base-200 p-4 rounded-lg">
+                                <div className="flex justify-between mb-2">
+                                    <span className="text-sm text-base-content/70">Meja:</span>
+                                    <span className="font-semibold">{completedOrder.table.name}</span>
+                                </div>
+                                <div className="flex justify-between mb-2">
+                                    <span className="text-sm text-base-content/70">Total Item:</span>
+                                    <span className="font-semibold">{completedOrder.orderItems.length} item</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-sm text-base-content/70">Total Bayar:</span>
+                                    <span className="font-bold text-lg text-primary">
+                                        Rp {completedOrder.totalPrice.toLocaleString('id-ID')}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="divider">Cetak Struk?</div>
+
+                            <div className="flex gap-2">
+                                <ReceiptPrint 
+                                    order={completedOrder} 
+                                    className="btn-primary flex-1"
+                                    onAfterPrint={handleCloseReceiptDialog}
+                                />
+                                <button 
+                                    className="btn btn-ghost flex-1" 
+                                    onClick={handleCloseReceiptDialog}
+                                >
+                                    Lewati
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <form method="dialog" className="modal-backdrop" onClick={handleCloseReceiptDialog}>
+                        <button>close</button>
+                    </form>
+                </dialog>
+            )}
         </div>
     )
 }
