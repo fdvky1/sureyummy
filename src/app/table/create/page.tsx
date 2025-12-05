@@ -17,17 +17,17 @@ export default function Page(){
         setErrors({})
 
         const formData = new FormData(e.currentTarget)
-        const number = parseInt(formData.get('number') as string)
-        const code = formData.get('code') as string
+        const name = formData.get('name') as string
         
-        // Generate slug from table number
-        const slug = `meja-${number}`
+        // Generate slug from table name
+        const slug = name.toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '')
 
         try {
             // Validate with Zod
             const validated = createTableSchema.parse({
-                number,
-                code,
+                name,
                 slug
             })
 
@@ -71,49 +71,25 @@ export default function Page(){
                 <div className="card bg-base-100 shadow-xl">
                     <div className="card-body">
                         <form onSubmit={handleSubmit}>
-                            <div className="form-control mb-4">
-                                <label className="label">
-                                    <span className="label-text font-semibold">Nomor Meja</span>
-                                </label>
-                                <input 
-                                    type="number" 
-                                    name="number"
-                                    placeholder="Contoh: 1" 
-                                    className={`input input-bordered w-full ${errors.number ? 'input-error' : ''}`}
-                                    required
-                                    min="1"
-                                />
-                                {errors.number && (
-                                    <label className="label">
-                                        <span className="label-text-alt text-error">{errors.number}</span>
-                                    </label>
-                                )}
-                                {!errors.number && (
-                                    <label className="label">
-                                        <span className="label-text-alt">Nomor unik untuk identifikasi meja</span>
-                                    </label>
-                                )}
-                            </div>
-
                             <div className="form-control mb-6">
                                 <label className="label">
-                                    <span className="label-text font-semibold">Kode Meja</span>
+                                    <span className="label-text font-semibold">Nama Meja</span>
                                 </label>
                                 <input 
                                     type="text" 
-                                    name="code"
-                                    placeholder="Contoh: A1, B2, VIP1" 
-                                    className={`input input-bordered w-full ${errors.code ? 'input-error' : ''}`}
+                                    name="name"
+                                    placeholder="Contoh: Meja 1, VIP 1, Outdoor A" 
+                                    className={`input input-bordered w-full ${errors.name ? 'input-error' : ''}`}
                                     required
                                 />
-                                {errors.code && (
+                                {errors.name && (
                                     <label className="label">
-                                        <span className="label-text-alt text-error">{errors.code}</span>
+                                        <span className="label-text-alt text-error">{errors.name}</span>
                                     </label>
                                 )}
-                                {!errors.code && (
+                                {!errors.name && (
                                     <label className="label">
-                                        <span className="label-text-alt">Kode untuk ditampilkan ke customer</span>
+                                        <span className="label-text-alt">Nama unik untuk identifikasi meja</span>
                                     </label>
                                 )}
                             </div>
