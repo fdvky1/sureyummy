@@ -1,4 +1,8 @@
 @import "tailwindcss";
+@theme {
+  --font-jakarta-sans: var(--font-jakarta-sans), sans-serif;
+}
+
 @plugin "daisyui";
 @plugin "daisyui/theme" {
   name: "cozy-warm";
@@ -42,11 +46,6 @@
   --border: 1px;
   --depth: 0.02;
   --noise: 0;
-}
-
-
-@theme {
-  --font-jakarta-sans: var(--font-plus-jakarta-sans), sans-serif;
 }
 
 @keyframes slide-up {
