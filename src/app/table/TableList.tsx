@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import QRCode from "qrcode"
 import useToastStore from "@/stores/toast"
+import { getTableStatusLabel } from "@/lib/enumHelpers"
 
 type Table = {
     id: string
@@ -142,16 +143,10 @@ export default function TableList({ tables }: { tables: Table[] }) {
             OCCUPIED: 'badge-error',
             OUT_OF_SERVICE: 'badge-neutral'
         }
-        
-        const labels: Record<TableStatus, string> = {
-            AVAILABLE: 'Tersedia',
-            OCCUPIED: 'Terisi',
-            OUT_OF_SERVICE: 'Tidak Tersedia'
-        }
 
         return (
             <span className={`badge ${badges[status]}`}>
-                {labels[status]}
+                {getTableStatusLabel(status)}
             </span>
         )
     }
@@ -189,8 +184,7 @@ export default function TableList({ tables }: { tables: Table[] }) {
                             >
                                 <option value="AVAILABLE">Tersedia</option>
                                 <option value="OCCUPIED">Terisi</option>
-                                {/* <option value="RESERVED">Dipesan</option> */}
-                                <option value="OUT_OF_SERVICE">Tidak Tersedia</option>
+                                <option value="OUT_OF_SERVICE">Tidak Aktif</option>
                             </select>
                         </div>
 
