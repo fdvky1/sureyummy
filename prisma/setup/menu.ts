@@ -18,7 +18,7 @@ async function setupMenu() {
   console.log('🍽️  Setting up menu items...')
 
   // Read menu.json
-  const menuPath = join(__dirname, '../menu.json')
+  const menuPath = join(__dirname, './menu.json')
   const menuData = JSON.parse(readFileSync(menuPath, 'utf-8'))
 
   let created = 0
