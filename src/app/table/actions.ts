@@ -7,6 +7,9 @@ import { TableStatus } from "@/generated/prisma/client"
 export async function getTables() {
   try {
     const tables = await prisma.table.findMany({
+      where: {
+        deletedAt: null
+      },
       orderBy: { name: 'asc' },
       include: {
         orders: {
@@ -49,13 +52,46 @@ export async function updateTableStatus(id: string, status: TableStatus) {
 
 export async function deleteTable(id: string) {
   try {
-    await prisma.table.delete({
-      where: { id }
+    // Soft delete
+    await prisma.table.update({
+      where: { id },
+      data: { deletedAt: new Date() }
     })
     revalidatePath('/table')
+    revalidatePath('/cashier')
     return { success: true }
   } catch (error) {
     console.error('Error deleting table:', error)
     return { success: false, error: 'Failed to delete table' }
+  }
+}
+
+export async function getTableById(id: string) {
+  try {
+    const table = await prisma.table.findUnique({
+      where: { id }
+    })
+    return { success: true, data: table }
+  } catch (error) {
+    console.error('Error fetching table:', error)
+    return { success: false, error: 'Failed to fetch table' }
+  }
+}
+
+export async function updateTable(id: string, data: { name: string; slug: string }) {
+  try {
+    const table = await prisma.table.update({
+      where: { id },
+      data: {
+        name: data.name,
+        slug: data.slug
+      }
+    })
+    revalidatePath('/table')
+    revalidatePath('/cashier')
+    return { success: true, data: table }
+  } catch (error) {
+    console.error('Error updating table:', error)
+    return { success: false, error: 'Failed to update table' }
   }
 }
