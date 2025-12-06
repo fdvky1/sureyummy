@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation"
 import { OrderStatus } from "@/generated/prisma/browser"
 import useToastStore from "@/stores/toast"
 import { getOrderStatusLabel } from "@/lib/enumHelpers"
-import { getWebSocketClient } from "@/lib/websocket"
+import { getWebSocketClient } from "@/lib/ws.client"
 
 type OrderItem = {
     id: string

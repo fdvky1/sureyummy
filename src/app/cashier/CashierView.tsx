@@ -9,7 +9,7 @@ import { OrderStatus, TableStatus, PaymentMethod } from "@/generated/prisma/brow
 import useToastStore from "@/stores/toast"
 import ReceiptPrint from "@/components/ReceiptPrint"
 import { getPaymentMethodLabel } from "@/lib/enumHelpers"
-import { getWebSocketClient } from "@/lib/websocket"
+import { getWebSocketClient } from "@/lib/ws.client"
 
 type OrderItem = {
     id: string
