@@ -8,7 +8,8 @@
     "start": "next start",
     "setup": "tsx prisma/setup/index.ts",
     "setup:users": "tsx prisma/setup/user.ts",
-    "setup:menu": "tsx prisma/setup/menu.ts"
+    "setup:menu": "tsx prisma/setup/menu.ts",
+    "setup:tables": "tsx prisma/setup/table.ts"
   },
   "dependencies": {
     "@genkit-ai/compat-oai": "^1.25.0",

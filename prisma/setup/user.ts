@@ -1,14 +1,7 @@
-import { PrismaClient } from '../../src/generated/prisma/client.js'
-import { PrismaPg } from '@prisma/adapter-pg'
+import { prisma } from './client.js'
 import bcrypt from 'bcrypt'
-import dotenv from 'dotenv'
 
-dotenv.config()
-
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
-const prisma = new PrismaClient({ adapter })
-
-async function setupUsers() {
+export async function setupUsers() {
   console.log('🔧 Setting up users...')
 
   const users = [
@@ -63,11 +56,14 @@ async function setupUsers() {
   console.log('   Cashier: cashier@sureyummy.com / cashier123\n')
 }
 
-setupUsers()
-  .catch((error) => {
-    console.error('❌ Error setting up users:', error)
-    process.exit(1)
-  })
-  .finally(async () => {
-    await prisma.$disconnect()
-  })
+// Run if called directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  setupUsers()
+    .catch((error) => {
+      console.error('❌ Error setting up users:', error)
+      process.exit(1)
+    })
+    .finally(async () => {
+      await prisma.$disconnect()
+    })
+}

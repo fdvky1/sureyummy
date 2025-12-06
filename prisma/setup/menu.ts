@@ -1,20 +1,13 @@
-import { PrismaClient } from '../../src/generated/prisma/client.js'
-import { PrismaPg } from '@prisma/adapter-pg'
+import { prisma } from './client.js'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import { fileURLToPath } from 'url'
 import { dirname } from 'path'
-import dotenv from 'dotenv'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-dotenv.config()
-
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
-const prisma = new PrismaClient({ adapter })
-
-async function setupMenu() {
+export async function setupMenu() {
   console.log('🍽️  Setting up menu items...')
 
   // Read menu.json
@@ -54,11 +47,14 @@ async function setupMenu() {
   console.log('\n✨ Menu setup completed!\n')
 }
 
-setupMenu()
-  .catch((error) => {
-    console.error('❌ Error setting up menu:', error)
-    process.exit(1)
-  })
-  .finally(async () => {
-    await prisma.$disconnect()
-  })
+// Run if called directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  setupMenu()
+    .catch((error) => {
+      console.error('❌ Error setting up menu:', error)
+      process.exit(1)
+    })
+    .finally(async () => {
+      await prisma.$disconnect()
+    })
+}
