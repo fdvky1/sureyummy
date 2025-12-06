@@ -97,7 +97,7 @@ export async function getActiveOrders() {
     const orders = await prisma.order.findMany({
       where: {
         status: {
-          notIn: [OrderStatus.COMPLETED, OrderStatus.CANCELLED]
+          notIn: [OrderStatus.COMPLETED, OrderStatus.CANCELLED, OrderStatus.READY]
         }
       },
       include: {

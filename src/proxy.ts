@@ -7,11 +7,13 @@ export async function proxy(request: NextRequest) {
   const token = await getToken({ req: request, secret: process.env.SECRET });
 
   if (!token){
-    if (request.nextUrl.pathname.startsWith("/table/")) return NextResponse.next();
+    if (request.nextUrl.pathname.startsWith("/order/")) return NextResponse.next();
     return NextResponse.redirect(new URL("/signin", request.url));
-  }else if(request.nextUrl.pathname.startsWith("/table/") && request.nextUrl.pathname != "/table/create"){
-    return NextResponse.redirect(new URL("/" + (token.role == Role.ADMIN? 'dashboard' : token.role == Role.KITCHEN_STAFF ? 'live' : 'cashier'), request.url));
-  }
+  }else{
+    if(request.nextUrl.pathname.startsWith("/order/") || (request.nextUrl.pathname == "/dashboard/users" && token.role != Role.ADMIN)){
+      return NextResponse.redirect(new URL("/" + (token.role == Role.ADMIN? 'dashboard' : token.role == Role.KITCHEN_STAFF ? 'live' : 'cashier'), request.url));
+    }
+  } 
 
   // Check the role and redirect based on the role
   switch (token.role) {
@@ -21,9 +23,6 @@ export async function proxy(request: NextRequest) {
     case Role.CASHIER:
         // Allow cashier to access: cashier, table management, history, and reports
         // Deny access to user management
-        if (request.nextUrl.pathname.startsWith("/dashboard/users")) {
-          return NextResponse.redirect(new URL("/cashier", request.url));
-        }
         const cashierAllowedPaths = ["/cashier", "/table", "/table/create", "/dashboard/history", "/dashboard/reports"];
         const isCashierPathAllowed = cashierAllowedPaths.some(path => 
           request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(path + "/")
