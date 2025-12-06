@@ -193,7 +193,7 @@ Berikan maksimal 3 rekomendasi yang BERAGAM.`
       config: {
         temperature: 0.9, // Higher temperature for more variety
         topP: 0.95,
-        model: defaultModel // Ensure model is set
+        // model: defaultModel // Ensure model is set
       },
       output: { 
         schema: z.object({
