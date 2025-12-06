@@ -6,6 +6,7 @@ import { OrderStatus, PaymentMethod, TableStatus } from "@/generated/prisma/clie
 import { createOrderSchema, CreateOrderInput } from "@/lib/validations"
 import { getUpsellRecommendations } from "@/lib/genkit"
 import { getOrCreateSession } from "@/lib/session"
+import { broadcastNewOrder } from "@/lib/ws.broadcast"
 import { z } from "zod"
 
 export async function getTableBySlug(slug: string) {
@@ -86,6 +87,11 @@ export async function createOrder(data: CreateOrderInput) {
       where: { id: validated.tableId },
       data: { status: TableStatus.OCCUPIED }
     })
+
+    // Broadcast to WebSocket clients
+    broadcastNewOrder(order.id, order.table.slug).catch(err => 
+      console.error('Failed to broadcast new order:', err)
+    )
 
     revalidatePath('/live')
     revalidatePath('/cashier')

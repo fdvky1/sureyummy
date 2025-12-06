@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { OrderStatus, PaymentMethod, TableStatus } from "@/generated/prisma/client"
 import { createOrderSchema, CreateOrderInput } from "@/lib/validations"
+import { broadcastNewOrder, broadcastOrderStatusUpdate, broadcastOrderCompleted } from "@/lib/ws.broadcast"
 import { z } from "zod"
 
 export async function createOrder(data: CreateOrderInput) {
@@ -40,6 +41,11 @@ export async function createOrder(data: CreateOrderInput) {
       where: { id: validated.tableId },
       data: { status: TableStatus.OCCUPIED }
     })
+
+    // Broadcast to WebSocket clients
+    broadcastNewOrder(order.id, order.table.slug).catch(err => 
+      console.error('Failed to broadcast new order:', err)
+    )
 
     revalidatePath('/live')
     revalidatePath('/cashier')
@@ -92,6 +98,12 @@ export async function updateOrderStatus(id: string, status: OrderStatus) {
         table: true
       }
     })
+
+    // Broadcast status update to WebSocket clients
+    broadcastOrderStatusUpdate(id, status).catch(err => 
+      console.error('Failed to broadcast order status update:', err)
+    )
+
     revalidatePath('/live')
     revalidatePath('/cashier')
     return { success: true, data: order }
@@ -180,6 +192,11 @@ export async function completeOrder(id: string) {
         })
       }
     }
+
+    // Broadcast order completion to WebSocket clients
+    broadcastOrderCompleted(id, order.table.slug).catch(err => 
+      console.error('Failed to broadcast order completion:', err)
+    )
 
     revalidatePath('/live')
     revalidatePath('/cashier')

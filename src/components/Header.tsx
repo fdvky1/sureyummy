@@ -21,18 +21,20 @@ export default function Header() {
   }
 
   return (
-    <div className={"sticky top-0 z-30 flex items-center gap-4 bg-base-100 border-b border-base-300 px-4 py-3 shadow-sm " + (isOpen ? 'lg:-ml-64' : '')}>
-      <button
-        onClick={toggle}
-        className="btn btn-ghost btn-sm btn-square"
-        aria-label="Toggle sidebar"
-      >
-        {isOpen ? (
-          <RiCloseLine className="w-6 h-6" />
-        ) : (
-          <RiMenuLine className="w-6 h-6" />
-        )}
-      </button>
+    <div className={"sticky top-0 z-30 flex items-center gap-4 bg-base-100 border-b border-base-300 px-4 py-3 shadow-sm " + (isOpen && pathname != '/' ? 'lg:-ml-64' : '')}>
+      {pathname != '/' ? (
+        <button
+          onClick={toggle}
+          className="btn btn-ghost btn-sm btn-square"
+          aria-label="Toggle sidebar"
+        >
+          {isOpen ? (
+            <RiCloseLine className="w-6 h-6" />
+          ) : (
+            <RiMenuLine className="w-6 h-6" />
+          )}
+        </button>
+      ) : null}
       <div className="flex items-center gap-2">
         <RiRestaurantLine className="w-6 h-6 text-primary" />
         <h1 className="text-lg font-bold text-primary">SureYummy</h1>
