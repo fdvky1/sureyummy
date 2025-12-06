@@ -387,30 +387,3 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## 📝 License
 
 This project is licensed under the MIT License.
-
----
-
-## 👨‍💻 Author
-
-**SureYummy Team**
-
-- GitHub: [@fdvky1](https://github.com/fdvky1)
-
----
-
-## 🙏 Acknowledgments
-
-- [Next.js](https://nextjs.org/) - The React Framework
-- [Prisma](https://www.prisma.io/) - Next-generation ORM
-- [DaisyUI](https://daisyui.com/) - Beautiful UI Components
-- [Firebase Genkit](https://firebase.google.com/docs/genkit) - AI Framework
-
----
-
-<div align="center">
-
-**Made with ❤️ for the F&B industry**
-
-⭐ Star this repo if you find it helpful!
-
-</div>
