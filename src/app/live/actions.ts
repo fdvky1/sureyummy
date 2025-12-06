@@ -4,7 +4,7 @@ import prisma from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { OrderStatus, PaymentMethod, TableStatus } from "@/generated/prisma/client"
 import { createOrderSchema, CreateOrderInput } from "@/lib/validations"
-import { broadcastNewOrder, broadcastOrderStatusUpdate, broadcastOrderCompleted } from "@/lib/ws.broadcast"
+import { broadcastToWebSocket } from "@/lib/ws.broadcast"
 import { z } from "zod"
 
 export async function createOrder(data: CreateOrderInput) {
@@ -43,7 +43,7 @@ export async function createOrder(data: CreateOrderInput) {
     })
 
     // Broadcast to WebSocket clients
-    broadcastNewOrder(order.id, order.table.slug).catch(err => 
+    broadcastToWebSocket(order, 'order.new').catch(err => 
       console.error('Failed to broadcast new order:', err)
     )
 
@@ -71,10 +71,22 @@ export async function getActiveOrders() {
       include: {
         orderItems: {
           include: {
-            menuItem: true
+            menuItem: {
+              select: {
+                id: true,
+                name: true,
+                price: true
+              }
+            }
           }
         },
-        table: true
+        table: {
+          select: {
+            id: true,
+            name: true,
+            slug: true
+          }
+        }
       },
       orderBy: {
         createdAt: 'desc'
@@ -93,13 +105,29 @@ export async function updateOrderStatus(id: string, status: OrderStatus) {
       where: { id },
       data: { status },
       include: {
-        orderItems: true,
-        table: true
+        orderItems: {
+          include: {
+            menuItem: {
+              select: {
+                id: true,
+                name: true,
+                price: true
+              }
+            }
+          }
+        },
+        table: {
+          select: {
+            id: true,
+            name: true,
+            slug: true
+          }
+        }
       }
     })
 
     // Broadcast status update to WebSocket clients
-    broadcastOrderStatusUpdate(id, status).catch(err => 
+    broadcastToWebSocket(order, 'order.status').catch(err => 
       console.error('Failed to broadcast order status update:', err)
     )
 
@@ -144,7 +172,7 @@ export async function completeOrder(id: string) {
     }
 
     // Broadcast order completion to WebSocket clients
-    broadcastOrderCompleted(id, order.table.slug).catch(err => 
+    broadcastToWebSocket({ orderId: id }, 'order.completed').catch(err => 
       console.error('Failed to broadcast order completion:', err)
     )
 

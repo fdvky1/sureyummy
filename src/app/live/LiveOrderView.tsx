@@ -76,28 +76,55 @@ export default function LiveOrderView({ initialOrders }: { initialOrders: Order[
         const unsubscribe = wsClient.subscribe((data) => {
             console.log('[Kitchen] WebSocket message received:', data)
             
-            // If polling message, fetch orders
-            if (data?.type === 'polling') {
-                fetchOrders()
-            } else {
-                // Real-time update from WebSocket
-                fetchOrders()
+            if (data?.type === 'order.new' && data?.data) {
+                // New order - add to list directly
+                console.log('[Kitchen] New order received, adding to list')
+                setOrders(prevOrders => [data.data, ...prevOrders])
+                
+                // Show notification
+                const lastOrderId = localStorage.getItem('lastOrderId')
+                if (data.data.id !== lastOrderId) {
+                    localStorage.setItem('lastOrderId', data.data.id)
+                    setMessage('🔔 Pesanan baru masuk!', 'info')
+                }
+            } else if (data?.type === 'order.status' && data?.data) {
+                // Status update - update specific order in state
+                console.log('[Kitchen] Order status update received')
+                setOrders(prevOrders => 
+                    prevOrders.map(order => 
+                        order.id === data.data.id ? data.data : order
+                    )
+                )
+            } else if (data?.type === 'order.completed' && data?.data) {
+                // Order completed - remove from active orders
+                console.log('[Kitchen] Order completed, removing from list')
+                setOrders(prevOrders => prevOrders.filter(order => order.id !== data.data.orderId))
             }
         })
 
         // Connect to WebSocket
         wsClient.connect()
 
+        // Polling fallback when disconnected
+        const pollingInterval = setInterval(() => {
+            const status = wsClient.getStatus()
+            if (!status.connected) {
+                console.log('[Kitchen] Polling fallback - fetching data')
+                fetchOrders()
+            }
+        }, 5000)
+
         // Update status periodically
         const statusInterval = setInterval(() => {
             const status = wsClient.getStatus()
-            setWsStatus({ connected: status.connected, polling: status.polling })
+            setWsStatus({ connected: status.connected, polling: !status.connected })
         }, 1000)
 
         // Cleanup
         return () => {
             unsubscribe()
             clearInterval(statusInterval)
+            clearInterval(pollingInterval)
             wsClient.disconnect()
         }
     }, [setMessage])

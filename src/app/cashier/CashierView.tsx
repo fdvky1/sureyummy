@@ -1,12 +1,11 @@
 'use client'
 
 import { useState, useEffect } from "react"
-import { getActiveOrders } from "./actions"
-import { getTables } from "@/app/table/actions"
-import { completeOrder } from "./actions"
+import { getCashierData, completeOrder } from "./actions"
 import { useRouter } from "next/navigation"
 import { OrderStatus, TableStatus, PaymentMethod } from "@/generated/prisma/browser"
 import useToastStore from "@/stores/toast"
+import useModalStore from "@/stores/modal"
 import ReceiptPrint from "@/components/ReceiptPrint"
 import { getPaymentMethodLabel } from "@/lib/enumHelpers"
 import { getWebSocketClient } from "@/lib/ws.client"
@@ -63,22 +62,19 @@ export default function CashierView({
     const [selectedTable, setSelectedTable] = useState<string | null>(null)
     const [completingId, setCompletingId] = useState<string | null>(null)
     const [completedOrder, setCompletedOrder] = useState<Order | null>(null)
+    const [completedSessionOrders, setCompletedSessionOrders] = useState<Order[]>([])
     const [wsStatus, setWsStatus] = useState<'connected' | 'polling' | 'connecting'>('connecting')
     const [showReceiptDialog, setShowReceiptDialog] = useState(false)
     const { setMessage } = useToastStore()
+    const { setModal, resetModal } = useModalStore()
 
     const fetchData = async () => {
         try {
-            const [ordersResult, tablesResult] = await Promise.all([
-                getActiveOrders(),
-                getTables()
-            ])
+            const result = await getCashierData()
             
-            if (ordersResult.success && ordersResult.data) {
-                setOrders(ordersResult.data)
-            }
-            if (tablesResult.success && tablesResult.data) {
-                setTables(tablesResult.data)
+            if (result.success && result.data) {
+                setOrders(result.data.orders)
+                setTables(result.data.tables)
             }
         } catch (error) {
             console.error('Failed to fetch data:', error)
@@ -92,60 +88,114 @@ export default function CashierView({
         // Subscribe to WebSocket messages
         const ws = getWebSocketClient()
         const unsubscribe = ws.subscribe((message) => {
-            console.log('Received WebSocket message:', message)
-            fetchData()
+            console.log('[Cashier] WebSocket message received:', message)
+            
+            if (message?.type === 'order.new' && message?.data) {
+                // New order - add to list and update tables directly
+                console.log('[Cashier] New order received, updating state')
+                setOrders(prevOrders => [message.data, ...prevOrders])
+                if (message.tables) {
+                    setTables(message.tables)
+                }
+            } else if (message?.type === 'order.status' && message?.data) {
+                // Status update - update specific order in state
+                console.log('[Cashier] Order status update received')
+                setOrders(prevOrders => 
+                    prevOrders.map(order => 
+                        order.id === message.data.id ? message.data : order
+                    )
+                )
+            } else if (message?.type === 'order.completed' && message?.data) {
+                // Order completed - remove order and update tables
+                console.log('[Cashier] Order completed, updating state')
+                setOrders(prevOrders => prevOrders.filter(order => order.id !== message.data.orderId))
+                if (message.tables) {
+                    setTables(message.tables)
+                }
+            }
         })
 
         // Connect to WebSocket
         ws.connect()
+
+        // Polling fallback when disconnected
+        const pollingInterval = setInterval(() => {
+            const status = ws.getStatus()
+            if (!status.connected) {
+                console.log('[Cashier] Polling fallback - fetching data')
+                fetchData()
+            }
+        }, 5000)
 
         // Update status indicator
         const statusInterval = setInterval(() => {
             const status = ws.getStatus()
             if (status.connected) {
                 setWsStatus('connected')
-            } else if (status.polling) {
-                setWsStatus('polling')
             } else {
-                setWsStatus('connecting')
+                setWsStatus('polling')
             }
         }, 1000)
 
         return () => {
             clearInterval(statusInterval)
+            clearInterval(pollingInterval)
             unsubscribe()
             ws.disconnect()
         }
     }, [])
 
     async function handleCompleteOrder(orderId: string) {
-        if (!confirm('Apakah pembayaran sudah diterima?')) return
-        
         // Find the order before completing
         const orderToComplete = orders.find(o => o.id === orderId)
         if (!orderToComplete) return
         
+        // Find all orders in the same session (if any)
+        let sessionOrders: Order[] = []
+        if (orderToComplete.sessionId) {
+            sessionOrders = orders.filter(o => o.sessionId === orderToComplete.sessionId)
+        }
+        
+        // Show confirmation modal
+        setModal({
+            title: 'Konfirmasi Pembayaran',
+            content: 'Apakah pembayaran sudah diterima?',
+            cancelButton: {
+                text: 'Batal',
+                onClick: () => resetModal()
+            },
+            confirmButton: {
+                text: 'Ya, Sudah Diterima',
+                className: 'btn-success',
+                onClick: async () => {
+                    resetModal()
+                    await processCompleteOrder(orderId, orderToComplete, sessionOrders)
+                }
+            }
+        })
+    }
+
+    async function processCompleteOrder(orderId: string, orderToComplete: Order, sessionOrders: Order[]) {
         setCompletingId(orderId)
         const result = await completeOrder(orderId)
         
         if (result.success) {
+            // Calculate grand total if session orders exist
+            const grandTotal = sessionOrders.length > 1 
+                ? sessionOrders.reduce((sum, order) => sum + order.totalPrice, 0)
+                : orderToComplete.totalPrice
+            
             // Show receipt dialog with completed order data
-            setCompletedOrder(orderToComplete)
+            setCompletedOrder({
+                ...orderToComplete,
+                totalPrice: grandTotal
+            })
+            setCompletedSessionOrders(sessionOrders.length > 1 ? sessionOrders : [])
             setShowReceiptDialog(true)
             setMessage('Pesanan berhasil diselesaikan', 'success')
             
-            // Refresh data
-            const [ordersResult, tablesResult] = await Promise.all([
-                getActiveOrders(),
-                getTables()
-            ])
-            
-            if (ordersResult.success && ordersResult.data) {
-                setOrders(ordersResult.data)
-            }
-            if (tablesResult.success && tablesResult.data) {
-                setTables(tablesResult.data)
-            }
+            // WebSocket will handle state updates via broadcast
+            // No need to fetch - server will send updated data
         } else {
             setMessage('Gagal menyelesaikan pesanan', 'error')
         }
@@ -155,6 +205,7 @@ export default function CashierView({
     function handleCloseReceiptDialog() {
         setShowReceiptDialog(false)
         setCompletedOrder(null)
+        setCompletedSessionOrders([])
         router.refresh()
     }
 
@@ -396,7 +447,7 @@ export default function CashierView({
                                                                     Rp {grandTotal.toLocaleString('id-ID')}
                                                                 </p>
                                                             </div>
-                                                            <div className="flex gap-2">
+                                                            <div className="flex gap-2 items-center">
                                                                 {allReady && (
                                                                     <>
                                                                         <ReceiptPrint 
@@ -404,8 +455,9 @@ export default function CashierView({
                                                                                 ...firstOrder, 
                                                                                 totalPrice: grandTotal,
                                                                                 orderItems: sessionOrders.flatMap(o => o.orderItems)
-                                                                            }} 
-                                                                            className="btn-primary btn-lg"
+                                                                            }}
+                                                                            orders={sessionOrders}
+                                                                            className="btn btn-primary btn-lg"
                                                                         />
                                                                         <button
                                                                             className="btn btn-success btn-lg"
@@ -422,7 +474,7 @@ export default function CashierView({
                                                                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                                                                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                                                                                     </svg>
-                                                                                    Bayar & Selesaikan
+                                                                                    Selesaikan Pesanan
                                                                                 </>
                                                                             )}
                                                                         </button>
@@ -479,7 +531,7 @@ export default function CashierView({
                                                     <div className="flex gap-2">
                                                         {order.status === OrderStatus.READY && (
                                                             <>
-                                                                <ReceiptPrint order={order} className="btn-primary" />
+                                                                <ReceiptPrint order={order} className="btn btn-primary btn-lg" />
                                                                 <button
                                                                     className="btn btn-success"
                                                                     onClick={() => handleCompleteOrder(order.id)}
@@ -540,9 +592,20 @@ export default function CashierView({
                                     <span className="text-sm text-base-content/70">Meja:</span>
                                     <span className="font-semibold">{completedOrder.table.name}</span>
                                 </div>
+                                {completedSessionOrders.length > 0 && (
+                                    <div className="flex justify-between mb-2">
+                                        <span className="text-sm text-base-content/70">Batch:</span>
+                                        <span className="font-semibold">{completedSessionOrders.length} batch pesanan</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between mb-2">
                                     <span className="text-sm text-base-content/70">Total Item:</span>
-                                    <span className="font-semibold">{completedOrder.orderItems.length} item</span>
+                                    <span className="font-semibold">
+                                        {completedSessionOrders.length > 0 
+                                            ? completedSessionOrders.reduce((sum, o) => sum + o.orderItems.length, 0)
+                                            : completedOrder.orderItems.length
+                                        } item
+                                    </span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-sm text-base-content/70">Total Bayar:</span>
@@ -554,10 +617,11 @@ export default function CashierView({
 
                             <div className="divider">Cetak Struk?</div>
 
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 items-center">
                                 <ReceiptPrint 
-                                    order={completedOrder} 
-                                    className="btn-primary flex-1"
+                                    order={completedOrder}
+                                    orders={completedSessionOrders.length > 0 ? completedSessionOrders : undefined}
+                                    className="btn btn-primary btn-lg"
                                     onAfterPrint={handleCloseReceiptDialog}
                                 />
                                 <button 

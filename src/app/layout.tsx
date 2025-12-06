@@ -5,6 +5,7 @@ import Toast from "@/components/Toast";
 import Providers from "@/components/Providers";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
+import Modal from "@/components/Modal";
 
 const jakartaSans = Plus_Jakarta_Sans({
   variable: "--font-jakarta-sans",
@@ -29,6 +30,7 @@ export default function RootLayout({
       >
         <Providers>
           <Toast/>
+          <Modal/>
           <div className="flex h-screen overflow-hidden">
             <Sidebar />
             <div className="flex-1 flex flex-col overflow-hidden">

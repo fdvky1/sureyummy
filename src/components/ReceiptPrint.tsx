@@ -39,11 +39,12 @@ type Order = {
 
 type ReceiptPrintProps = {
     order: Order
+    orders?: Order[] // For session orders with multiple batches
     className?: string
     onAfterPrint?: () => void
 }
 
-export default function ReceiptPrint({ order, className = '', onAfterPrint }: ReceiptPrintProps) {
+export default function ReceiptPrint({ order, orders, className = '', onAfterPrint }: ReceiptPrintProps) {
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('id-ID', {
             style: 'currency',
@@ -60,19 +61,23 @@ export default function ReceiptPrint({ order, className = '', onAfterPrint }: Re
             return
         }
 
-        const receiptContent = generateReceiptHTML(order)
+        let receiptContent = ''
+        
+        // If orders array is provided (multiple batches), combine all in one document
+        if (orders && orders.length > 1) {
+            receiptContent = generateMultipleBatchesHTML(orders)
+        } else {
+            receiptContent = generateReceiptHTML(order)
+        }
         
         printWindow.document.write(receiptContent)
         printWindow.document.close()
         
-        // Wait for content to load then print
         printWindow.onload = () => {
             printWindow.focus()
             printWindow.print()
-            // Close after print or cancel
             setTimeout(() => {
                 printWindow.close()
-                // Call callback after print dialog closes
                 if (onAfterPrint) {
                     onAfterPrint()
                 }
@@ -80,10 +85,10 @@ export default function ReceiptPrint({ order, className = '', onAfterPrint }: Re
         }
     }
 
-    const generateReceiptHTML = (order: Order) => {
-        const createdDate = order.createdAt instanceof Date 
-            ? order.createdAt 
-            : new Date(order.createdAt)
+    const generateMultipleBatchesHTML = (batchOrders: Order[]) => {
+        const batchesHTML = batchOrders.map((batchOrder, index) => 
+            generateReceiptContent(batchOrder, index + 1, batchOrders.length)
+        ).join('')
 
         return `
 <!DOCTYPE html>
@@ -91,8 +96,25 @@ export default function ReceiptPrint({ order, className = '', onAfterPrint }: Re
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Struk - ${order.id}</title>
+    <title>Struk - Multiple Batches</title>
     <style>
+        ${getReceiptStyles()}
+    </style>
+</head>
+<body>
+    ${batchesHTML}
+    <script>
+        window.onload = function() {
+            window.print();
+        }
+    </script>
+</body>
+</html>
+        `
+    }
+
+    const getReceiptStyles = () => {
+        return `
         * {
             margin: 0;
             padding: 0;
@@ -105,6 +127,16 @@ export default function ReceiptPrint({ order, className = '', onAfterPrint }: Re
             padding: 10px;
             font-size: 12px;
             line-height: 1.4;
+        }
+        
+        .receipt-page {
+            page-break-after: always;
+            margin-bottom: 20px;
+        }
+        
+        .receipt-page:last-child {
+            page-break-after: auto;
+            margin-bottom: 0;
         }
         
         .header {
@@ -190,75 +222,116 @@ export default function ReceiptPrint({ order, className = '', onAfterPrint }: Re
             body {
                 width: 80mm;
                 margin: 0;
+                padding: 0;
+            }
+            
+            .receipt-page {
+                page-break-after: always;
+                margin-bottom: 0;
+                padding: 10px;
+            }
+            
+            .receipt-page:last-child {
+                page-break-after: auto;
             }
         }
+        `
+    }
+
+    const generateReceiptContent = (order: Order, batchNumber?: number, totalBatches?: number) => {
+        const createdDate = order.createdAt instanceof Date 
+            ? order.createdAt 
+            : new Date(order.createdAt)
+
+        return `
+    <div class="receipt-page">
+        <div class="header">
+            <h1>SureYummy</h1>
+            <p>Restaurant System</p>
+            <p>Jl. Contoh No. 123, Jakarta</p>
+            <p>Telp: (021) 12345678</p>
+        </div>
+        
+        <div class="info">
+            <div class="info-row">
+                <span>No. Order:</span>
+                <span><strong>#${order.id.substring(0, 8).toUpperCase()}</strong></span>
+            </div>
+            <div class="info-row">
+                <span>Meja:</span>
+                <span><strong>${order.table.name}</strong></span>
+            </div>
+            <div class="info-row">
+                <span>Tanggal:</span>
+                <span>${format(createdDate, 'dd MMM yyyy, HH:mm', { locale: id })}</span>
+            </div>
+            ${order.session ? `
+            <div class="info-row">
+                <span>Session:</span>
+                <span>#${order.session.sessionId.substring(0, 8).toUpperCase()}</span>
+            </div>
+            ` : ''}
+            ${batchNumber && totalBatches ? `
+            <div class="info-row" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #ddd;">
+                <span>Batch:</span>
+                <span><strong>${batchNumber} dari ${totalBatches}</strong></span>
+            </div>
+            ` : ''}
+        </div>
+        
+        <div class="items">
+            ${order.orderItems.map(item => `
+                <div class="item">
+                    <div class="item-name">${item.menuItem.name}</div>
+                    <div class="item-detail">
+                        <span>${item.quantity} x ${formatCurrency(item.price)}</span>
+                        <span><strong>${formatCurrency(item.quantity * item.price)}</strong></span>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+        
+        <div class="total">
+            <div class="total-row">
+                <span>TOTAL</span>
+                <span>${formatCurrency(order.totalPrice)}</span>
+            </div>
+        </div>
+        
+        <div class="payment-info">
+            <div class="info-row">
+                <span>Metode Bayar:</span>
+                <span><strong>${order.paymentMethod ? getPaymentMethodLabel(order.paymentMethod as PaymentMethod) : 'Tunai'}</strong></span>
+            </div>
+            <div class="info-row">
+                <span>Status:</span>
+                <span><strong>${order.isPaid ? 'LUNAS' : 'BELUM BAYAR'}</strong></span>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Terima kasih atas kunjungan Anda!</p>
+            <p>Selamat menikmati hidangan Anda</p>
+            <p style="margin-top: 10px;">- SureYummy Team -</p>
+        </div>
+    </div>
+        `
+    }
+
+    const generateReceiptHTML = (order: Order, batchNumber?: number, totalBatches?: number) => {
+        return `
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Struk - ${order.id}</title>
+    <style>
+        ${getReceiptStyles()}
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>SureYummy</h1>
-        <p>Restaurant System</p>
-        <p>Jl. Contoh No. 123, Jakarta</p>
-        <p>Telp: (021) 12345678</p>
-    </div>
-    
-    <div class="info">
-        <div class="info-row">
-            <span>No. Order:</span>
-            <span><strong>#${order.id.substring(0, 8).toUpperCase()}</strong></span>
-        </div>
-        <div class="info-row">
-            <span>Meja:</span>
-            <span><strong>${order.table.name}</strong></span>
-        </div>
-        <div class="info-row">
-            <span>Tanggal:</span>
-            <span>${format(createdDate, 'dd MMM yyyy, HH:mm', { locale: id })}</span>
-        </div>
-        ${order.session ? `
-        <div class="info-row">
-            <span>Session:</span>
-            <span>#${order.session.sessionId.substring(0, 8).toUpperCase()}</span>
-        </div>
-        ` : ''}
-    </div>
-    
-    <div class="items">
-        ${order.orderItems.map(item => `
-            <div class="item">
-                <div class="item-name">${item.menuItem.name}</div>
-                <div class="item-detail">
-                    <span>${item.quantity} x ${formatCurrency(item.price)}</span>
-                    <span><strong>${formatCurrency(item.quantity * item.price)}</strong></span>
-                </div>
-            </div>
-        `).join('')}
-    </div>
-    
-    <div class="total">
-        <div class="total-row">
-            <span>TOTAL</span>
-            <span>${formatCurrency(order.totalPrice)}</span>
-        </div>
-    </div>
-    
-    <div class="payment-info">
-        <div class="info-row">
-            <span>Metode Bayar:</span>
-            <span><strong>${order.paymentMethod ? getPaymentMethodLabel(order.paymentMethod as PaymentMethod) : 'Tunai'}</strong></span>
-        </div>
-        <div class="info-row">
-            <span>Status:</span>
-            <span><strong>${order.isPaid ? 'LUNAS' : 'BELUM BAYAR'}</strong></span>
-        </div>
-    </div>
-    
-    <div class="footer">
-        <p>Terima kasih atas kunjungan Anda!</p>
-        <p>Selamat menikmati hidangan Anda</p>
-        <p style="margin-top: 10px;">- SureYummy Team -</p>
-    </div>
-    
+    ${generateReceiptContent(order, batchNumber, totalBatches)}
     <script>
         window.onload = function() {
             window.print();
@@ -272,7 +345,7 @@ export default function ReceiptPrint({ order, className = '', onAfterPrint }: Re
     return (
         <button
             onClick={handlePrint}
-            className={`btn btn-sm btn-ghost ${className}`}
+            className={`${className}`}
             title="Print Struk"
         >
             <RiPrinterLine className="w-4 h-4" />

@@ -8,18 +8,21 @@ type MessageHandler = (data: any) => void
 class WebSocketClient {
   private ws: WebSocket | null = null
   private reconnectTimer: NodeJS.Timeout | null = null
-  private pollingTimer: NodeJS.Timeout | null = null
   private messageHandlers: Set<MessageHandler> = new Set()
   private isConnected = false
   private reconnectAttempts = 0
   private maxReconnectAttempts = 5
   private reconnectDelay = 3000 // 3 seconds
-  private pollingInterval = 5000 // 5 seconds
   private wsUrl: string
   private shouldConnect = false
 
   constructor() {
-    const baseUrl = process.env.NEXT_PUBLIC_FW_BASEURL || 'https://sureyummy-ws-forward.zeabur.app'
+    const baseUrl = process.env.NEXT_PUBLIC_FW_BASEURL
+    if (!baseUrl) {
+      console.log('[WS] NEXT_PUBLIC_FW_BASEURL not found, WebSocket disabled')
+      this.wsUrl = ''
+      return
+    }
     // Convert HTTP(S) to WS(S)
     this.wsUrl = baseUrl.replace(/^http/, 'ws') + '/ws'
   }
@@ -30,8 +33,14 @@ class WebSocketClient {
   connect() {
     if (typeof window === 'undefined') return // Only run on client
     
+    // If no WebSocket URL, skip WebSocket setup
+    if (!this.wsUrl) {
+      console.log('[WS] WebSocket disabled, components will use polling')
+      this.shouldConnect = true
+      return
+    }
+    
     this.shouldConnect = true
-    this.stopPolling() // Stop polling when trying to connect
 
     try {
       console.log('[WS] Attempting to connect to:', this.wsUrl)
@@ -41,7 +50,6 @@ class WebSocketClient {
         console.log('[WS] Connected successfully')
         this.isConnected = true
         this.reconnectAttempts = 0
-        this.stopPolling() // Ensure polling is stopped
       }
 
       this.ws.onmessage = (event) => {
@@ -63,7 +71,7 @@ class WebSocketClient {
       }
 
       this.ws.onerror = (error) => {
-        console.error('[WS] Connection error:', error)
+        console.error('[WS] Connection error - components will use polling fallback')
         this.isConnected = false
       }
 
@@ -73,9 +81,6 @@ class WebSocketClient {
         this.ws = null
 
         if (this.shouldConnect) {
-          // Start polling as fallback
-          this.startPolling()
-          
           // Attempt to reconnect
           this.scheduleReconnect()
         }
@@ -85,7 +90,6 @@ class WebSocketClient {
       this.isConnected = false
       
       if (this.shouldConnect) {
-        this.startPolling()
         this.scheduleReconnect()
       }
     }
@@ -115,40 +119,6 @@ class WebSocketClient {
   }
 
   /**
-   * Start polling as fallback
-   */
-  private startPolling() {
-    if (this.pollingTimer || this.isConnected) return
-
-    console.log('[WS] Starting polling fallback every', this.pollingInterval, 'ms')
-    
-    this.pollingTimer = setInterval(() => {
-      if (!this.isConnected) {
-        console.log('[WS] Polling for updates...')
-        // Notify handlers to fetch data
-        this.messageHandlers.forEach(handler => {
-          try {
-            handler({ type: 'polling' })
-          } catch (err) {
-            console.error('[WS] Error in polling handler:', err)
-          }
-        })
-      }
-    }, this.pollingInterval)
-  }
-
-  /**
-   * Stop polling
-   */
-  private stopPolling() {
-    if (this.pollingTimer) {
-      clearInterval(this.pollingTimer)
-      this.pollingTimer = null
-      console.log('[WS] Polling stopped')
-    }
-  }
-
-  /**
    * Disconnect from WebSocket
    */
   disconnect() {
@@ -159,8 +129,6 @@ class WebSocketClient {
       clearTimeout(this.reconnectTimer)
       this.reconnectTimer = null
     }
-    
-    this.stopPolling()
     
     if (this.ws) {
       this.ws.close()
@@ -193,11 +161,10 @@ class WebSocketClient {
   /**
    * Get connection status
    */
-  getStatus(): { connected: boolean; reconnectAttempts: number; polling: boolean } {
+  getStatus(): { connected: boolean; reconnectAttempts: number } {
     return {
       connected: this.isConnected,
       reconnectAttempts: this.reconnectAttempts,
-      polling: this.pollingTimer !== null
     }
   }
 }
