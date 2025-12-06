@@ -236,6 +236,10 @@ CLOUDFLARE_R2_PUBLIC_URL="https://your-public-url.com"
 # OpenAI Compatible API (untuk AI insights)
 OPENAI_CONFIG="https://api.openai.com/v1|your-api-key|gpt-4"
 # Format: baseurl|apikey|model
+
+# WebSocket Server (untuk real-time updates)
+FW_BASEURL="https://sureyummy-ws-forward.zeabur.app"
+FW_API_KEY="your-api-key-here"  # Optional: kosongkan jika tidak ada
 ```
 
 ### 4. Setup Database

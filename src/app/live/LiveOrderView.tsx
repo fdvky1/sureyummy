@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { OrderStatus } from "@/generated/prisma/browser"
 import useToastStore from "@/stores/toast"
 import { getOrderStatusLabel } from "@/lib/enumHelpers"
+import { getWebSocketClient } from "@/lib/websocket"
 
 type OrderItem = {
     id: string
@@ -36,27 +37,19 @@ export default function LiveOrderView({ initialOrders }: { initialOrders: Order[
     const router = useRouter()
     const [orders, setOrders] = useState<Order[]>(initialOrders)
     const [updatingId, setUpdatingId] = useState<string | null>(null)
+    const [wsStatus, setWsStatus] = useState({ connected: false, polling: false })
     const { setMessage } = useToastStore()
 
     useEffect(() => {
-        // Check for new orders
-        const lastOrderId = localStorage.getItem('lastOrderId')
-        if (orders.length > 0 && orders[0].id !== lastOrderId) {
-            // New order detected
-            // TODO: Play notification sound here
-            // const audio = new Audio('/notification.mp3')
-            // audio.play()
-            
-            localStorage.setItem('lastOrderId', orders[0].id)
-        }
-
-        // Poll for new orders every 5 seconds
-        const interval = setInterval(async () => {
+        const wsClient = getWebSocketClient()
+        
+        // Function to fetch orders
+        const fetchOrders = async () => {
             const result = await getActiveOrders()
             if (result.success && result.data) {
                 const newOrders = result.data
                 
-                // Check if there's a new order
+                // Check if there's a new order for notification
                 if (newOrders.length > orders.length) {
                     const latestOrder = newOrders[0]
                     const existingIds = orders.map(o => o.id)
@@ -68,14 +61,53 @@ export default function LiveOrderView({ initialOrders }: { initialOrders: Order[
                         // audio.play()
                         
                         localStorage.setItem('lastOrderId', latestOrder.id)
+                        setMessage('🔔 Pesanan baru masuk!', 'info')
                     }
                 }
                 
                 setOrders(newOrders)
             }
-        }, 5000)
+        }
 
-        return () => clearInterval(interval)
+        // Initial fetch
+        fetchOrders()
+
+        // Subscribe to WebSocket messages
+        const unsubscribe = wsClient.subscribe((data) => {
+            console.log('[Kitchen] WebSocket message received:', data)
+            
+            // If polling message, fetch orders
+            if (data?.type === 'polling') {
+                fetchOrders()
+            } else {
+                // Real-time update from WebSocket
+                fetchOrders()
+            }
+        })
+
+        // Connect to WebSocket
+        wsClient.connect()
+
+        // Update status periodically
+        const statusInterval = setInterval(() => {
+            const status = wsClient.getStatus()
+            setWsStatus({ connected: status.connected, polling: status.polling })
+        }, 1000)
+
+        // Cleanup
+        return () => {
+            unsubscribe()
+            clearInterval(statusInterval)
+            wsClient.disconnect()
+        }
+    }, [setMessage])
+
+    // Check for initial new orders
+    useEffect(() => {
+        const lastOrderId = localStorage.getItem('lastOrderId')
+        if (orders.length > 0 && orders[0].id !== lastOrderId) {
+            localStorage.setItem('lastOrderId', orders[0].id)
+        }
     }, [orders])
 
     async function handleStatusChange(orderId: string, status: OrderStatus) {
@@ -145,7 +177,24 @@ export default function LiveOrderView({ initialOrders }: { initialOrders: Order[
                     <div className="flex items-center sm:justify-between">
                         <div className="hidden sm:block">
                             <h1 className="text-3xl font-bold">Kitchen Dashboard</h1>
-                            <p className="text-sm opacity-90 mt-1">Monitor pesanan secara real-time</p>
+                            <div className="flex items-center gap-3 mt-1">
+                                <p className="text-sm opacity-90">Monitor pesanan secara real-time</p>
+                                <div className="flex items-center gap-2">
+                                    {wsStatus.connected ? (
+                                        <div className="badge badge-success badge-sm gap-1">
+                                            <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+                                            WebSocket
+                                        </div>
+                                    ) : wsStatus.polling ? (
+                                        <div className="badge badge-warning badge-sm gap-1">
+                                            <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+                                            Polling
+                                        </div>
+                                    ) : (
+                                        <div className="badge badge-ghost badge-sm">Connecting...</div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                         <div className="stats shadow bg-primary-content text-primary w-full sm:w-auto">
                             <div className="stat">

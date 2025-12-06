@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
-import { RiTrophyLine, RiBarChartBoxLine, RiCalendarLine } from '@remixicon/react'
+import { RiTrophyLine, RiBarChartBoxLine, RiCalendarLine, RiPrinterLine } from '@remixicon/react'
 import { MenuCategory } from "@/generated/prisma/browser"
 import { getMenuCategoryLabel } from "@/lib/enumHelpers"
 
@@ -47,6 +47,305 @@ export default function ReportsView({ report, currentYear, currentMonth }: Repor
             minimumFractionDigits: 0,
             maximumFractionDigits: 0
         }).format(amount)
+    }
+
+    const handlePrint = () => {
+        if (!report) return
+
+        const printWindow = window.open('', '_blank', 'width=800,height=600')
+        if (!printWindow) {
+            alert('Popup diblokir! Izinkan popup untuk mencetak laporan.')
+            return
+        }
+
+        const printContent = generatePrintHTML(report)
+        printWindow.document.write(printContent)
+        printWindow.document.close()
+
+        printWindow.onload = () => {
+            printWindow.focus()
+            printWindow.print()
+            setTimeout(() => {
+                printWindow.close()
+            }, 100)
+        }
+    }
+
+    const generatePrintHTML = (report: MonthlyReport) => {
+        const categoryEntries = Object.entries(report.categoryStats)
+            .sort(([, a], [, b]) => b.revenue - a.revenue)
+
+        return `
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan Bulanan - ${report.period.monthName} ${report.period.year}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            padding: 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #FF6B6B;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            color: #FF6B6B;
+            margin-bottom: 5px;
+        }
+        
+        .header h2 {
+            font-size: 20px;
+            color: #666;
+            font-weight: normal;
+        }
+        
+        .header .period {
+            font-size: 18px;
+            color: #333;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .summary-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #FF6B6B;
+        }
+        
+        .summary-card h3 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        
+        .summary-card .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            page-break-inside: avoid;
+        }
+        
+        .section h3 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        th {
+            background: #f8f9fa;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .font-bold {
+            font-weight: bold;
+        }
+        
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .category-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 3px solid #FF6B6B;
+        }
+        
+        .category-item .name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .category-item .stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #e9ecef;
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+        }
+        
+        @media print {
+            body {
+                padding: 10px;
+            }
+            
+            .summary {
+                page-break-inside: avoid;
+            }
+            
+            .section {
+                page-break-inside: avoid;
+            }
+            
+            @page {
+                margin: 1cm;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🍽️ SureYummy Restaurant</h1>
+        <h2>Laporan Bulanan</h2>
+        <div class="period">${report.period.monthName} ${report.period.year}</div>
+    </div>
+
+    <div class="summary">
+        <div class="summary-card">
+            <h3>Total Pendapatan</h3>
+            <div class="value">${formatCurrency(report.summary.totalRevenue)}</div>
+        </div>
+        <div class="summary-card">
+            <h3>Total Pesanan</h3>
+            <div class="value">${report.summary.totalOrders.toLocaleString('id-ID')}</div>
+        </div>
+        <div class="summary-card">
+            <h3>Rata-rata per Pesanan</h3>
+            <div class="value">${formatCurrency(report.summary.averageOrderValue)}</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>📊 Top 10 Menu Terlaris</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Nama Menu</th>
+                    <th class="text-center">Terjual</th>
+                    <th class="text-right">Revenue</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${report.topItems.slice(0, 10).map((item, index) => `
+                    <tr>
+                        <td class="font-bold">#${index + 1}</td>
+                        <td>${item.name}</td>
+                        <td class="text-center">${item.quantity} porsi</td>
+                        <td class="text-right font-bold">${formatCurrency(item.revenue)}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h3>🏷️ Performa per Kategori</h3>
+        <div class="category-grid">
+            ${categoryEntries.map(([category, stats]) => `
+                <div class="category-item">
+                    <div class="name">${getMenuCategoryLabel(category as MenuCategory)}</div>
+                    <div class="stats">
+                        <span>${stats.quantity} items</span>
+                        <span class="font-bold">${formatCurrency(stats.revenue)}</span>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>📅 Breakdown Harian</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Tanggal</th>
+                    <th class="text-center">Jumlah Pesanan</th>
+                    <th class="text-right">Revenue</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${report.dailyStats.map(day => `
+                    <tr>
+                        <td>${format(new Date(day.date), 'EEEE, dd MMMM yyyy', { locale: id })}</td>
+                        <td class="text-center">${day.orderCount} pesanan</td>
+                        <td class="text-right font-bold">${formatCurrency(day.revenue)}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="footer">
+        <p>Dicetak pada: ${format(new Date(), 'dd MMMM yyyy, HH:mm', { locale: id })}</p>
+        <p style="margin-top: 5px;">© ${new Date().getFullYear()} SureYummy Restaurant - Laporan ini bersifat rahasia</p>
+    </div>
+
+    <script>
+        window.onload = function() {
+            window.print();
+        }
+    </script>
+</body>
+</html>
+        `
     }
 
     const handleMonthChange = (year: number, month: number) => {
@@ -119,7 +418,16 @@ export default function ReportsView({ report, currentYear, currentMonth }: Repor
                                 </select>
                             </div>
                             <div className="flex-1"></div>
-                            <div className="badge badge-lg badge-primary">{report.period.monthName}</div>
+                            <div className="flex items-center gap-2">
+                                <div className="badge badge-lg badge-primary">{report.period.monthName}</div>
+                                <button 
+                                    onClick={handlePrint}
+                                    className="btn btn-primary gap-2"
+                                >
+                                    <RiPrinterLine className="w-5 h-5" />
+                                    Print Laporan
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

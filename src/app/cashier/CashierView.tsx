@@ -9,6 +9,7 @@ import { OrderStatus, TableStatus, PaymentMethod } from "@/generated/prisma/brow
 import useToastStore from "@/stores/toast"
 import ReceiptPrint from "@/components/ReceiptPrint"
 import { getPaymentMethodLabel } from "@/lib/enumHelpers"
+import { getWebSocketClient } from "@/lib/websocket"
 
 type OrderItem = {
     id: string
@@ -62,12 +63,12 @@ export default function CashierView({
     const [selectedTable, setSelectedTable] = useState<string | null>(null)
     const [completingId, setCompletingId] = useState<string | null>(null)
     const [completedOrder, setCompletedOrder] = useState<Order | null>(null)
+    const [wsStatus, setWsStatus] = useState<'connected' | 'polling' | 'connecting'>('connecting')
     const [showReceiptDialog, setShowReceiptDialog] = useState(false)
     const { setMessage } = useToastStore()
 
-    useEffect(() => {
-        // Poll for updates every 5 seconds
-        const interval = setInterval(async () => {
+    const fetchData = async () => {
+        try {
             const [ordersResult, tablesResult] = await Promise.all([
                 getActiveOrders(),
                 getTables()
@@ -79,9 +80,42 @@ export default function CashierView({
             if (tablesResult.success && tablesResult.data) {
                 setTables(tablesResult.data)
             }
-        }, 5000)
+        } catch (error) {
+            console.error('Failed to fetch data:', error)
+        }
+    }
 
-        return () => clearInterval(interval)
+    useEffect(() => {
+        // Initial fetch
+        fetchData()
+
+        // Subscribe to WebSocket messages
+        const ws = getWebSocketClient()
+        const unsubscribe = ws.subscribe((message) => {
+            console.log('Received WebSocket message:', message)
+            fetchData()
+        })
+
+        // Connect to WebSocket
+        ws.connect()
+
+        // Update status indicator
+        const statusInterval = setInterval(() => {
+            const status = ws.getStatus()
+            if (status.connected) {
+                setWsStatus('connected')
+            } else if (status.polling) {
+                setWsStatus('polling')
+            } else {
+                setWsStatus('connecting')
+            }
+        }, 1000)
+
+        return () => {
+            clearInterval(statusInterval)
+            unsubscribe()
+            ws.disconnect()
+        }
     }, [])
 
     async function handleCompleteOrder(orderId: string) {
@@ -208,7 +242,26 @@ export default function CashierView({
                     <div className="flex items-center justify-between">
                         <div className="hidden sm:block">
                             <h1 className="text-3xl font-bold">Kasir Dashboard</h1>
-                            <p className="text-sm opacity-90 mt-1">Kelola pembayaran dan status meja</p>
+                            <div className="flex items-center gap-3 mt-1">
+                                <p className="text-sm opacity-90">Kelola pembayaran dan status meja</p>
+                                {wsStatus === 'connected' && (
+                                    <span className="badge badge-success gap-2">
+                                        <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                                        WebSocket
+                                    </span>
+                                )}
+                                {wsStatus === 'polling' && (
+                                    <span className="badge badge-warning gap-2">
+                                        <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                                        Polling
+                                    </span>
+                                )}
+                                {wsStatus === 'connecting' && (
+                                    <span className="badge badge-ghost gap-2">
+                                        Connecting...
+                                    </span>
+                                )}
+                            </div>
                         </div>
                         <div className="stats shadow bg-primary-content text-primary w-full sm:w-auto">
                             <div className="stat">
