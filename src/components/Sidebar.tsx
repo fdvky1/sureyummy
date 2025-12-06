@@ -15,7 +15,8 @@ import {
   RiMoneyDollarCircleLine,
   RiKnifeLine,
   RiLogoutBoxRLine,
-  RiArrowLeftWideLine
+  RiArrowLeftWideLine,
+  RiUserSettingsLine
 } from '@remixicon/react'
 
 export default function Sidebar() {
@@ -50,6 +51,7 @@ export default function Sidebar() {
     { href: '/dashboard/reports', icon: RiBarChartBoxLine, label: 'Laporan Bulanan' },
     { href: '/menu', icon: RiRestaurantLine, label: 'Kelola Menu' },
     { href: '/table', icon: RiTableLine, label: 'Kelola Meja' },
+    { href: '/dashboard/users', icon: RiUserSettingsLine, label: 'Kelola Pengguna' },
     { href: '/cashier', icon: RiMoneyDollarCircleLine, label: 'Kasir' },
     { href: '/live', icon: RiKnifeLine, label: 'Dapur' },
   ]

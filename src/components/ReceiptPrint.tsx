@@ -96,7 +96,7 @@ export default function ReceiptPrint({ order, orders, className = '', onAfterPri
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Struk - Multiple Batches</title>
+    <title>Struk - ${batchOrders[0].session?.sessionId || 'Multiple Batches'}</title>
     <style>
         ${getReceiptStyles()}
     </style>
@@ -325,7 +325,7 @@ export default function ReceiptPrint({ order, orders, className = '', onAfterPri
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Struk - ${order.id}</title>
+    <title>Struk - ${order.session?.sessionId || order.id}</title>
     <style>
         ${getReceiptStyles()}
     </style>
