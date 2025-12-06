@@ -7,7 +7,8 @@ import { useState } from "react"
 import QRCode from "qrcode"
 import useToastStore from "@/stores/toast"
 import { getTableStatusLabel } from "@/lib/enumHelpers"
-
+import Link from "next/link"
+import { RiFileCopy2Line } from "@remixicon/react"
 type Table = {
     id: string
     name: string
@@ -41,8 +42,19 @@ export default function TableList({ tables }: { tables: Table[] }) {
         router.refresh()
     }
 
+    async function handleCopyOrderLink(table: Table) {
+        const url = `${window.location.origin}/order/${table.slug}`
+        
+        try {
+            await navigator.clipboard.writeText(url)
+            setMessage('Link berhasil disalin ke clipboard', 'success')
+        } catch (error) {
+            setMessage('Gagal menyalin link', 'error')
+        }
+    }
+
     async function handlePrintQR(table: Table) {
-        const url = `${window.location.origin}/table/${table.slug}`
+        const url = `${window.location.origin}/order/${table.slug}`
         
         try {
             // Generate QR code as data URL
@@ -163,13 +175,13 @@ export default function TableList({ tables }: { tables: Table[] }) {
                             {getStatusBadge(table.status)}
                         </div>
 
-                        {table.orders.length > 0 && (
+                        {/* {table.orders.length > 0 && (
                             <div className="mt-2">
                                 <p className="text-sm font-semibold">
                                     {table.orders.length} pesanan aktif
                                 </p>
                             </div>
-                        )}
+                        )} */}
 
                         <div className="divider my-2"></div>
 
@@ -190,6 +202,12 @@ export default function TableList({ tables }: { tables: Table[] }) {
 
                         <div className="card-actions justify-end mt-4 gap-2">
                             <button 
+                                className="btn btn-sm btn-secondary"
+                                onClick={() => handleCopyOrderLink(table)}
+                            >
+                                <RiFileCopy2Line />
+                            </button>
+                            <button 
                                 className="btn btn-sm btn-primary"
                                 onClick={() => handlePrintQR(table)}
                             >
@@ -199,6 +217,15 @@ export default function TableList({ tables }: { tables: Table[] }) {
                                 </svg>
                                 Print QR
                             </button>
+                            <Link 
+                                className="btn btn-sm btn-ghost"
+                                href={`/table/edit/${table.id}`}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                </svg>
+                                Edit
+                            </Link>
                             <button 
                                 className="btn btn-sm btn-error btn-outline"
                                 onClick={() => handleDelete(table.id)}
