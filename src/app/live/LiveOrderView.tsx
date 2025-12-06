@@ -6,32 +6,9 @@ import { updateOrderStatus } from "./actions"
 import { useRouter } from "next/navigation"
 import { OrderStatus } from "@/generated/prisma/browser"
 import useToastStore from "@/stores/toast"
-import { getOrderStatusLabel } from "@/lib/enumHelpers"
+import { getOrderStatusLabel, getOrderStatusBadgeClass } from "@/lib/enumHelpers"
 import { getWebSocketClient } from "@/lib/ws.client"
-
-type OrderItem = {
-    id: string
-    quantity: number
-    price: number
-    menuItem: {
-        id: string
-        name: string
-        price: number
-    }
-}
-
-type Order = {
-    id: string
-    totalPrice: number
-    status: OrderStatus
-    createdAt: string | Date
-    table: {
-        id: string
-        name: string
-        slug: string
-    }
-    orderItems: OrderItem[]
-}
+import { Order } from "@/types/order"
 
 export default function LiveOrderView({ initialOrders }: { initialOrders: Order[] }) {
     const router = useRouter()
@@ -73,32 +50,35 @@ export default function LiveOrderView({ initialOrders }: { initialOrders: Order[
         fetchOrders()
 
         // Subscribe to WebSocket messages
-        const unsubscribe = wsClient.subscribe((data) => {
-            console.log('[Kitchen] WebSocket message received:', data)
+        const unsubscribe = wsClient.subscribe((message) => {
+            const { type, data } = message || {}
+            if (!type || !data) return
             
-            if (data?.type === 'order.new' && data?.data) {
-                // New order - add to list directly
-                console.log('[Kitchen] New order received, adding to list')
-                setOrders(prevOrders => [data.data, ...prevOrders])
-                
-                // Show notification
-                const lastOrderId = localStorage.getItem('lastOrderId')
-                if (data.data.id !== lastOrderId) {
-                    localStorage.setItem('lastOrderId', data.data.id)
-                    setMessage('🔔 Pesanan baru masuk!', 'info')
-                }
-            } else if (data?.type === 'order.status' && data?.data) {
-                // Status update - update specific order in state
-                console.log('[Kitchen] Order status update received')
-                setOrders(prevOrders => 
-                    prevOrders.map(order => 
-                        order.id === data.data.id ? data.data : order
-                    )
-                )
-            } else if (data?.type === 'order.completed' && data?.data) {
-                // Order completed - remove from active orders
-                console.log('[Kitchen] Order completed, removing from list')
-                setOrders(prevOrders => prevOrders.filter(order => order.id !== data.data.orderId))
+            switch (type) {
+                case 'order.new':
+                    if (data.order) {
+                        setOrders(prev => [data.order, ...prev])
+                        
+                        const lastOrderId = localStorage.getItem('lastOrderId')
+                        if (data.order.id !== lastOrderId) {
+                            localStorage.setItem('lastOrderId', data.order.id)
+                            setMessage('🔔 Pesanan baru masuk!', 'info')
+                        }
+                    }
+                    break
+                    
+                case 'order.status':
+                    if (data.order) {
+                        setOrders(prev => prev.map(o => o.id === data.order.id ? data.order : o))
+                    }
+                    break
+                    
+                case 'order.completed':
+                    const { sessionId, orderId } = data
+                    setOrders(prev => prev.filter(o => 
+                        sessionId ? o.sessionId !== sessionId : o.id !== orderId
+                    ))
+                    break
             }
         })
 
@@ -107,11 +87,7 @@ export default function LiveOrderView({ initialOrders }: { initialOrders: Order[
 
         // Polling fallback when disconnected
         const pollingInterval = setInterval(() => {
-            const status = wsClient.getStatus()
-            if (!status.connected) {
-                console.log('[Kitchen] Polling fallback - fetching data')
-                fetchOrders()
-            }
+            if (!wsClient.getStatus().connected) fetchOrders()
         }, 5000)
 
         // Update status periodically
@@ -142,12 +118,16 @@ export default function LiveOrderView({ initialOrders }: { initialOrders: Order[
         const result = await updateOrderStatus(orderId, status)
         
         if (result.success) {
-            router.refresh()
             setMessage('Status pesanan berhasil diubah', 'success')
-            // Refresh orders
-            const ordersResult = await getActiveOrders()
-            if (ordersResult.success && ordersResult.data) {
-                setOrders(ordersResult.data)
+            
+            // If order is now READY, remove it from the list immediately
+            if (status === OrderStatus.READY) {
+                setOrders(prev => prev.filter(o => o.id !== orderId))
+            } else {
+                // For other status changes, update the order in the list
+                setOrders(prev => prev.map(o => 
+                    o.id === orderId ? { ...o, status } : o
+                ))
             }
         } else {
             setMessage('Gagal mengubah status pesanan', 'error')
@@ -156,17 +136,8 @@ export default function LiveOrderView({ initialOrders }: { initialOrders: Order[
     }
 
     function getStatusBadge(status: OrderStatus) {
-        const badges = {
-            PENDING: 'badge-warning',
-            CONFIRMED: 'badge-info',
-            PREPARING: 'badge-primary',
-            READY: 'badge-success',
-            COMPLETED: 'badge-neutral',
-            CANCELLED: 'badge-error'
-        }
-
         return (
-            <span className={`badge ${badges[status]} badge-lg`}>
+            <span className={`badge ${getOrderStatusBadgeClass(status)} badge-lg`}>
                 {getOrderStatusLabel(status)}
             </span>
         )
@@ -174,7 +145,7 @@ export default function LiveOrderView({ initialOrders }: { initialOrders: Order[
 
     function getNextStatus(currentStatus: OrderStatus): OrderStatus | null {
         const flow: Record<OrderStatus, OrderStatus | null> = {
-            PENDING: OrderStatus.CONFIRMED,
+            PENDING: OrderStatus.PREPARING, // Skip CONFIRMED, go directly to PREPARING
             CONFIRMED: OrderStatus.PREPARING,
             PREPARING: OrderStatus.READY,
             READY: null,
@@ -184,16 +155,40 @@ export default function LiveOrderView({ initialOrders }: { initialOrders: Order[
         return flow[currentStatus]
     }
 
-    function getNextStatusLabel(status: OrderStatus | null): string {
+    function getNextStatusLabel(currentStatus: OrderStatus, nextStatus: OrderStatus | null): string {
+        if (currentStatus === OrderStatus.PENDING && nextStatus === OrderStatus.PREPARING) {
+            return 'Konfirmasi & Mulai Masak'
+        }
+        
+        if (currentStatus === OrderStatus.PREPARING && nextStatus === OrderStatus.READY) {
+            return 'Tandai Siap'
+        }
+        
         const labels: Record<OrderStatus, string> = {
             [OrderStatus.PENDING]: '',
-            [OrderStatus.CONFIRMED]: 'Konfirmasi',
-            [OrderStatus.PREPARING]: 'Mulai Masak',
-            [OrderStatus.READY]: 'Tandai Siap',
+            [OrderStatus.CONFIRMED]: 'Mulai Masak',
+            [OrderStatus.PREPARING]: 'Tandai Siap',
+            [OrderStatus.READY]: '',
             [OrderStatus.COMPLETED]: '',
             [OrderStatus.CANCELLED]: ''
         }
-        return status ? labels[status] || '' : ''
+        return nextStatus ? labels[nextStatus] || '' : ''
+    }
+
+    async function handleCancelOrder(orderId: string) {
+        setUpdatingId(orderId)
+        const result = await updateOrderStatus(orderId, OrderStatus.CANCELLED)
+        
+        if (result.success) {
+            setMessage('Pesanan berhasil dibatalkan', 'success')
+            const ordersResult = await getActiveOrders()
+            if (ordersResult.success && ordersResult.data) {
+                setOrders(ordersResult.data)
+            }
+        } else {
+            setMessage('Gagal membatalkan pesanan', 'error')
+        }
+        setUpdatingId(null)
     }
 
     return (
@@ -294,20 +289,53 @@ export default function LiveOrderView({ initialOrders }: { initialOrders: Order[
                                             </span>
                                         </div>
 
-                                        {nextStatus && (
-                                            <button 
-                                                className={`btn ${isPending ? 'btn-warning' : 'btn-primary'} btn-block mt-4`}
-                                                onClick={() => handleStatusChange(order.id, nextStatus)}
-                                                disabled={updatingId === order.id}
-                                            >
-                                                {updatingId === order.id ? (
-                                                    <>
-                                                        <span className="loading loading-spinner"></span>
-                                                        Memproses...
-                                                    </>
-                                                ) : getNextStatusLabel(nextStatus)}
-                                            </button>
-                                        )}
+                                        <div className="space-y-2 mt-4">
+                                            {nextStatus && (
+                                                <button 
+                                                    className={`btn ${isPending ? 'btn-warning' : 'btn-primary'} btn-block`}
+                                                    onClick={() => handleStatusChange(order.id, nextStatus)}
+                                                    disabled={updatingId === order.id}
+                                                >
+                                                    {updatingId === order.id ? (
+                                                        <>
+                                                            <span className="loading loading-spinner"></span>
+                                                            Memproses...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            {isPending && (
+                                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                                </svg>
+                                                            )}
+                                                            {getNextStatusLabel(order.status, nextStatus)}
+                                                        </>
+                                                    )}
+                                                </button>
+                                            )}
+                                            
+                                            {order.status === OrderStatus.PENDING && (
+                                                <button 
+                                                    className="btn btn-error btn-outline btn-block"
+                                                    onClick={() => handleCancelOrder(order.id)}
+                                                    disabled={updatingId === order.id}
+                                                >
+                                                    {updatingId === order.id ? (
+                                                        <>
+                                                            <span className="loading loading-spinner"></span>
+                                                            Memproses...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                            </svg>
+                                                            Batalkan Pesanan
+                                                        </>
+                                                    )}
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             )

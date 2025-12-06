@@ -61,3 +61,28 @@ export const roleLabels: Record<Role, string> = {
 export function getRoleLabel(role: Role): string {
   return roleLabels[role] || role
 }
+
+// Order Status Badge Classes
+export const orderStatusBadgeClasses: Record<OrderStatus, string> = {
+  PENDING: 'badge-warning',
+  CONFIRMED: 'badge-info',
+  PREPARING: 'badge-primary',
+  READY: 'badge-success',
+  COMPLETED: 'badge-neutral',
+  CANCELLED: 'badge-error'
+}
+
+export function getOrderStatusBadgeClass(status: OrderStatus): string {
+  return orderStatusBadgeClasses[status] || 'badge-neutral'
+}
+
+// Table Status Badge Classes
+export const tableStatusBadgeClasses: Record<TableStatus, string> = {
+  AVAILABLE: 'badge-success',
+  OCCUPIED: 'badge-error',
+  OUT_OF_SERVICE: 'badge-neutral'
+}
+
+export function getTableStatusBadgeClass(status: TableStatus): string {
+  return tableStatusBadgeClasses[status] || 'badge-neutral'
+}
