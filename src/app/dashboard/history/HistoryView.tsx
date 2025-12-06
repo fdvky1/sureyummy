@@ -283,7 +283,7 @@ export default function HistoryView({ orders }: HistoryViewProps) {
                                         <div className="flex-1">
                                             <p className="font-medium">{item.menuItem.name}</p>
                                             <p className="text-xs text-base-content/70">
-                                                {getMenuCategoryLabel(item.menuItem.category)} • {formatCurrency(item.price)}
+                                                {getMenuCategoryLabel(item.menuItem.category as MenuCategory)} • {formatCurrency(item.price)}
                                             </p>
                                         </div>
                                         <div className="text-right">
