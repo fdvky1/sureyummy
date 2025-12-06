@@ -83,6 +83,6 @@
   @apply text-white;
 }
 
-.btn-warning {
+.btn-secondary, .btn-warning {
   @apply text-white;
 }
