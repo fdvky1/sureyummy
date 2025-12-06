@@ -75,10 +75,29 @@ export async function createOrder(data: CreateOrderInput) {
       include: {
         orderItems: {
           include: {
-            menuItem: true
+            menuItem: {
+              select: {
+                id: true,
+                name: true,
+                price: true
+              }
+            }
           }
         },
-        table: true
+        table: {
+          select: {
+            id: true,
+            name: true,
+            slug: true
+          }
+        },
+        session: {
+          select: {
+            id: true,
+            sessionId: true,
+            isActive: true
+          }
+        }
       }
     })
 
@@ -88,8 +107,21 @@ export async function createOrder(data: CreateOrderInput) {
       data: { status: TableStatus.OCCUPIED }
     })
 
-    // Broadcast to WebSocket clients
-    broadcastToWebSocket(order, 'order.new').catch(err => 
+    // Get updated tables for broadcast
+    const updatedTables = await prisma.table.findMany({
+      include: {
+        orders: {
+          where: {
+            status: {
+              notIn: [OrderStatus.COMPLETED, OrderStatus.CANCELLED]
+            }
+          }
+        }
+      }
+    })
+
+    // Broadcast to WebSocket clients with tables
+    broadcastToWebSocket({ order, tables: updatedTables }, 'order.new').catch(err => 
       console.error('Failed to broadcast new order:', err)
     )
 

@@ -8,6 +8,7 @@ export async function broadcastToWebSocket(data: any, type: string) {
   if (!baseUrl || !apiKey) return
   
   try {
+    // Send clean structure: { data: { data: {...payload}, type: 'event.name' } }
     await fetch(`${baseUrl}/broadcast`, {
       method: 'POST',
       headers: {
@@ -16,6 +17,7 @@ export async function broadcastToWebSocket(data: any, type: string) {
       },
       body: JSON.stringify({ data: { data, type } }),
     })
+    console.log('[WS Broadcast] Sent:', type, 'with data keys:', Object.keys(data))
   } catch (error) {
     console.error('[WS Broadcast] Error:', error)
   }

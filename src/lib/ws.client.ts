@@ -54,13 +54,17 @@ class WebSocketClient {
 
       this.ws.onmessage = (event) => {
         try {
-          const message = JSON.parse(event.data)
-          console.log('[WS] Message received:', message)
+          const rawMessage = JSON.parse(event.data)
+          console.log('[WS] Raw message received:', rawMessage)
           
-          // Notify all handlers
+          // Extract the actual message: { type, data }
+          const message = rawMessage.data || rawMessage
+          console.log('[WS] Parsed message:', message)
+          
+          // Notify all handlers with the clean message structure
           this.messageHandlers.forEach(handler => {
             try {
-              handler(message.data)
+              handler(message)
             } catch (err) {
               console.error('[WS] Error in message handler:', err)
             }

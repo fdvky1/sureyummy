@@ -29,10 +29,29 @@ export async function createOrder(data: CreateOrderInput) {
       include: {
         orderItems: {
           include: {
-            menuItem: true
+            menuItem: {
+              select: {
+                id: true,
+                name: true,
+                price: true
+              }
+            }
           }
         },
-        table: true
+        table: {
+          select: {
+            id: true,
+            name: true,
+            slug: true
+          }
+        },
+        session: {
+          select: {
+            id: true,
+            sessionId: true,
+            isActive: true
+          }
+        }
       }
     })
 
@@ -42,8 +61,21 @@ export async function createOrder(data: CreateOrderInput) {
       data: { status: TableStatus.OCCUPIED }
     })
 
+    // Get updated tables for broadcast
+    const updatedTables = await prisma.table.findMany({
+      include: {
+        orders: {
+          where: {
+            status: {
+              notIn: [OrderStatus.COMPLETED, OrderStatus.CANCELLED]
+            }
+          }
+        }
+      }
+    })
+
     // Broadcast to WebSocket clients
-    broadcastToWebSocket(order, 'order.new').catch(err => 
+    broadcastToWebSocket({ order, tables: updatedTables }, 'order.new').catch(err => 
       console.error('Failed to broadcast new order:', err)
     )
 
@@ -86,6 +118,13 @@ export async function getActiveOrders() {
             name: true,
             slug: true
           }
+        },
+        session: {
+          select: {
+            id: true,
+            sessionId: true,
+            isActive: true
+          }
         }
       },
       orderBy: {
@@ -122,12 +161,32 @@ export async function updateOrderStatus(id: string, status: OrderStatus) {
             name: true,
             slug: true
           }
+        },
+        session: {
+          select: {
+            id: true,
+            sessionId: true,
+            isActive: true
+          }
         }
       }
     })
 
-    // Broadcast status update to WebSocket clients
-    broadcastToWebSocket(order, 'order.status').catch(err => 
+    // Get updated tables for broadcast
+    const updatedTables = await prisma.table.findMany({
+      include: {
+        orders: {
+          where: {
+            status: {
+              notIn: [OrderStatus.COMPLETED, OrderStatus.CANCELLED]
+            }
+          }
+        }
+      }
+    })
+
+    // Broadcast status update to WebSocket clients with tables
+    broadcastToWebSocket({ order, tables: updatedTables }, 'order.status').catch(err => 
       console.error('Failed to broadcast order status update:', err)
     )
 
@@ -142,37 +201,69 @@ export async function updateOrderStatus(id: string, status: OrderStatus) {
 
 export async function completeOrder(id: string) {
   try {
-    const order = await prisma.order.update({
+    const order = await prisma.order.findUnique({
       where: { id },
-      data: { 
-        status: OrderStatus.COMPLETED,
-        isPaid: true
-      },
-      include: {
-        table: true
-      }
+      include: { table: true, session: true }
     })
 
-    // Check if table has any other active orders
-    const activeOrders = await prisma.order.findMany({
+    if (!order) {
+      return { success: false, error: 'Order not found' }
+    }
+
+    const sessionId = order.sessionId
+
+    // Complete order(s) - if has session, complete all in session
+    if (sessionId) {
+      await prisma.order.updateMany({
+        where: {
+          sessionId,
+          status: { notIn: [OrderStatus.COMPLETED, OrderStatus.CANCELLED] }
+        },
+        data: { status: OrderStatus.COMPLETED, isPaid: true }
+      })
+
+      await prisma.session.update({
+        where: { id: sessionId },
+        data: { isActive: false }
+      })
+    } else {
+      await prisma.order.update({
+        where: { id },
+        data: { status: OrderStatus.COMPLETED, isPaid: true }
+      })
+    }
+
+    // Check if table should be set to AVAILABLE
+    const activeOrders = await prisma.order.count({
       where: {
         tableId: order.tableId,
-        status: {
-          notIn: [OrderStatus.COMPLETED, OrderStatus.CANCELLED]
-        }
+        status: { notIn: [OrderStatus.COMPLETED, OrderStatus.CANCELLED] }
       }
     })
 
-    // If no active orders, set table to AVAILABLE
-    if (activeOrders.length === 0) {
+    if (activeOrders === 0) {
       await prisma.table.update({
         where: { id: order.tableId },
         data: { status: TableStatus.AVAILABLE }
       })
     }
 
-    // Broadcast order completion to WebSocket clients
-    broadcastToWebSocket({ orderId: id }, 'order.completed').catch(err => 
+    // Broadcast with sessionId - let frontend handle filtering
+    const updatedTables = await prisma.table.findMany({
+      include: {
+        orders: {
+          where: {
+            status: { notIn: [OrderStatus.COMPLETED, OrderStatus.CANCELLED] }
+          }
+        }
+      }
+    })
+
+    broadcastToWebSocket({ 
+      sessionId: sessionId || null, 
+      orderId: id,
+      tables: updatedTables 
+    }, 'order.completed').catch(err => 
       console.error('Failed to broadcast order completion:', err)
     )
 
