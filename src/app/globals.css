@@ -78,3 +78,11 @@
 .alert {
   @apply text-white;
 }
+
+.badge-warning {
+  @apply text-white;
+}
+
+.btn-warning {
+  @apply text-white;
+}
