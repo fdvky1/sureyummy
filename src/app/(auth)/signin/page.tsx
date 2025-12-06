@@ -2,7 +2,6 @@
 
 import { signIn } from 'next-auth/react';
 import { useState } from 'react';
-import { redirectAfterLogin } from '../actions';
 
 export default function SignInPage() {
   const [email, setEmail] = useState('');
@@ -19,14 +18,11 @@ export default function SignInPage() {
       const result = await signIn('credentials', {
         email,
         password,
-        redirect: false,
+        redirect: true
       });
 
       if (result?.error) {
         setError('Email atau password salah');
-      } else if (result?.ok) {
-        // Use server action to redirect based on role
-        await redirectAfterLogin();
       }
     } catch (error) {
       setError('Terjadi kesalahan, silakan coba lagi');
@@ -96,9 +92,9 @@ export default function SignInPage() {
             </div>
           </form>
 
-          <div className="divider text-xs">Default Accounts</div>
+          {/* <div className="divider text-xs">Default Accounts</div>
           
-          {/* <div className="text-xs space-y-2 text-base-content/60">
+          <div className="text-xs space-y-2 text-base-content/60">
             <div>
               <strong>Admin:</strong> admin@sureyummy.com / admin123
             </div>

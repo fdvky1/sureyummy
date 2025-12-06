@@ -62,10 +62,7 @@ export const authOptions: NextAuthOptions = {
             return session;
         },
         async redirect({ url, baseUrl }) {
-            // If URL is provided and starts with baseUrl, allow it
-            if (url.startsWith('/')) return url;
-            if (url.startsWith(baseUrl)) return url;
-            return baseUrl;
+            return "/dashboard";
         }
     }
 }
