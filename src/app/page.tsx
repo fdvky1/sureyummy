@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { 
   RiRestaurantLine, 
   RiSmartphoneLine, 
@@ -12,7 +13,8 @@ import {
   RiArrowRightLine,
   RiSparklingLine,
   RiBrainLine,
-  RiFlashlightLine
+  RiFlashlightLine,
+  RiMenu2Line
 } from '@remixicon/react'
 
 export default function Home() {
@@ -38,11 +40,11 @@ export default function Home() {
                   Solusi POS Terpercaya untuk Bisnis F&B
                 </div>
 
-                <h1 className="text-5xl lg:text-7xl font-bold leading-tight">
+                <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold leading-tight">
                   Tingkatkan Efisiensi Restoran dengan <span className="text-primary">Teknologi AI</span>
                 </h1>
 
-                <p className="text-xl text-base-content/70 leading-relaxed">
+                <p className="text-lg md:text-xl text-base-content/70 leading-relaxed">
                   SureYummy adalah platform POS all-in-one yang dirancang khusus untuk restoran dan cafe modern. Integrasikan pemesanan digital, manajemen dapur, dan analitik bisnis dalam satu sistem yang mudah digunakan.
                 </p>
 
@@ -57,32 +59,32 @@ export default function Home() {
                   </Link>
                 </div>
 
-                <div className="flex items-center gap-8 pt-4">
+                <div className="flex flex-wrap items-center gap-4 md:gap-8 pt-4">
                   <div className="flex items-center gap-2">
-                    <div className="w-12 h-12 rounded-full bg-success/20 flex items-center justify-center">
-                      <RiCheckLine className="w-6 h-6 text-success" />
+                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-success/20 flex items-center justify-center">
+                      <RiCheckLine className="w-5 h-5 md:w-6 md:h-6 text-success" />
                     </div>
                     <div>
-                      <p className="font-bold text-2xl">500+</p>
-                      <p className="text-sm text-base-content/70">Restoran</p>
+                      <p className="font-bold text-xl md:text-2xl">500+</p>
+                      <p className="text-xs md:text-sm text-base-content/70">Restoran</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-                      <RiBrainLine className="w-6 h-6 text-primary" />
+                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                      <RiBrainLine className="w-5 h-5 md:w-6 md:h-6 text-primary" />
                     </div>
                     <div>
-                      <p className="font-bold text-2xl">AI</p>
-                      <p className="text-sm text-base-content/70">Analytics</p>
+                      <p className="font-bold text-xl md:text-2xl">AI</p>
+                      <p className="text-xs md:text-sm text-base-content/70">Analytics</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center">
-                      <RiFlashlightLine className="w-6 h-6 text-accent" />
+                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-accent/20 flex items-center justify-center">
+                      <RiFlashlightLine className="w-5 h-5 md:w-6 md:h-6 text-accent" />
                     </div>
                     <div>
-                      <p className="font-bold text-2xl">24/7</p>
-                      <p className="text-sm text-base-content/70">Support</p>
+                      <p className="font-bold text-xl md:text-2xl">24/7</p>
+                      <p className="text-xs md:text-sm text-base-content/70">Support</p>
                     </div>
                   </div>
                 </div>
@@ -91,16 +93,17 @@ export default function Home() {
               {/* Right Content - Mockup */}
               <div className="relative">
                 <div className="relative aspect-[4/3] bg-gradient-to-br from-primary/20 to-accent/20 rounded-3xl shadow-2xl overflow-hidden border border-base-300">
-                  {/* Placeholder for screenshot/mockup */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-center space-y-4 p-8">
-                      <RiRestaurantLine className="w-24 h-24 mx-auto text-primary/40" />
-                      <p className="text-base-content/50 font-medium">Dashboard Preview</p>
-                    </div>
-                  </div>
+                  {/* Dashboard Screenshot */}
+                  <Image 
+                    src="/images/screenshoot.png"
+                    alt="SureYummy Dashboard Preview"
+                    fill
+                    className="object-cover"
+                    priority
+                  />
                 </div>
-                {/* Floating Cards */}
-                <div className="absolute -left-4 top-1/4 bg-base-100 p-4 rounded-xl shadow-xl border border-base-300 w-48">
+                {/* Floating Cards - Hidden on mobile, visible on lg */}
+                <div className="hidden lg:block absolute -left-4 top-1/4 bg-base-100 p-4 rounded-xl shadow-xl border border-base-300 w-48">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center">
                       <RiCheckLine className="w-5 h-5 text-success" />
@@ -111,14 +114,62 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
-                <div className="absolute -right-4 bottom-1/4 bg-base-100 p-4 rounded-xl shadow-xl border border-base-300 w-48">
+                <div className="hidden lg:block absolute -right-4 bottom-1/4 bg-base-100 p-4 rounded-xl shadow-xl border border-base-300 w-48">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                      <RiPrinterLine className="w-5 h-5 text-primary" />
+                      <RiBrainLine className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <p className="font-bold">Auto Print</p>
-                      <p className="text-xs text-base-content/70">Receipt</p>
+                      <p className="font-bold">AI Insights</p>
+                      <p className="text-xs text-base-content/70">Bantuan Analisis AI</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="hidden lg:block absolute -right-4 top-1/4 bg-base-100 p-4 rounded-xl shadow-xl border border-base-300">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                      <RiMenu2Line className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-bold">Menu Upselling</p>
+                      <p className="text-xs text-base-content/70">Rekomendasikan menu yang relevan kepada pelanggan</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Key Features - Visible only on mobile */}
+              <div className="lg:hidden grid grid-cols-1 gap-3 mt-6">
+                <div className="bg-base-100 p-4 rounded-xl shadow-lg border border-base-300">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center">
+                      <RiCheckLine className="w-5 h-5 text-success" />
+                    </div>
+                    <div>
+                      <p className="font-bold">Real-time</p>
+                      <p className="text-xs text-base-content/70">Order Updates</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-base-100 p-4 rounded-xl shadow-lg border border-base-300">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                      <RiBrainLine className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-bold">AI Insights</p>
+                      <p className="text-xs text-base-content/70">Analytics by AI</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-base-100 p-4 rounded-xl shadow-lg border border-base-300">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                      <RiMenu2Line className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-bold">Menu Upselling</p>
+                      <p className="text-xs text-base-content/70">Recommend relevant menu to customer</p>
                     </div>
                   </div>
                 </div>
