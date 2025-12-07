@@ -1,5 +1,8 @@
 'use client'
 
+import { useState } from 'react'
+import Image from 'next/image'
+
 type MenuItem = {
     id: string
     name: string
@@ -14,15 +17,31 @@ type MenuCardProps = {
 }
 
 export default function MenuCard({ item, onAddToCart }: MenuCardProps) {
+    const [imageError, setImageError] = useState(false)
+
     return (
         <div className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
-            {item.image && (
-                <figure className="h-48 bg-base-200">
-                    <img 
+            {item.image && !imageError && (
+                <figure className="h-48 bg-base-200 relative overflow-hidden">
+                    <Image 
                         src={item.image} 
                         alt={item.name}
-                        className="w-full h-full object-cover"
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        className="object-cover"
+                        loading="lazy"
+                        onError={() => setImageError(true)}
                     />
+                </figure>
+            )}
+            {(!item.image || imageError) && (
+                <figure className="h-48 bg-base-200">
+                    <div className="flex flex-col items-center justify-center h-full text-base-content/40">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span className="text-xs">Gambar tidak tersedia</span>
+                    </div>
                 </figure>
             )}
             <div className="card-body">
