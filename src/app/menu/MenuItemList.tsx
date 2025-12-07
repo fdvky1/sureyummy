@@ -1,9 +1,12 @@
 'use client'
 
 import { deleteMenuItem } from "./actions"
-import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useRouter, usePathname, useSearchParams } from "next/navigation"
+import { useState, useMemo, useCallback } from "react"
+import Image from "next/image"
 import useToastStore from "@/stores/toast"
+import SearchBar from "@/components/SearchBar"
+import { debounce } from "lodash"
 
 type MenuItem = {
     id: string
@@ -13,10 +16,48 @@ type MenuItem = {
     image?: string | null
 }
 
-export default function MenuItemList({ menuItems }: { menuItems: MenuItem[] }) {
+export default function MenuItemList({ menuItems, initialSearch = '' }: { menuItems: MenuItem[], initialSearch?: string }) {
     const router = useRouter()
+    const pathname = usePathname()
+    const searchParams = useSearchParams()
     const [deletingId, setDeletingId] = useState<string | null>(null)
+    const [imageErrors, setImageErrors] = useState<Set<string>>(new Set())
     const { setMessage } = useToastStore()
+    
+    // Search state
+    const [searchInput, setSearchInput] = useState(initialSearch)
+
+    // Debounced URL update
+    const updateSearchUrl = useCallback(
+        debounce((value: string) => {
+            const params = new URLSearchParams(searchParams.toString())
+            if (value) {
+                params.set('search', value)
+            } else {
+                params.delete('search')
+            }
+            const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
+            router.replace(newUrl, { scroll: false })
+        }, 300),
+        [pathname, router]
+    )
+
+    // Handle search input change
+    const handleSearchChange = (value: string) => {
+        setSearchInput(value)
+        updateSearchUrl(value)
+    }
+
+    // Filter menu items based on search
+    const filteredMenuItems = useMemo(() => {
+        if (!searchInput) return menuItems
+        
+        const searchLower = searchInput.toLowerCase()
+        return menuItems.filter(item => 
+            item.name.toLowerCase().includes(searchLower) ||
+            (item.description?.toLowerCase().includes(searchLower) ?? false)
+        )
+    }, [menuItems, searchInput])
 
     async function handleDelete(id: string) {
         if (!confirm('Apakah Anda yakin ingin menghapus menu ini?')) return
@@ -33,19 +74,75 @@ export default function MenuItemList({ menuItems }: { menuItems: MenuItem[] }) {
         setDeletingId(null)
     }
 
+    function handleImageError(id: string) {
+        setImageErrors(prev => new Set(prev).add(id))
+    }
+
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {menuItems.map((item) => (
+        <>
+            {/* Search Bar */}
+            <div className="mb-6">
+                <SearchBar
+                    value={searchInput}
+                    onChange={handleSearchChange}
+                    placeholder="Cari menu..."
+                />
+            </div>
+
+            {/* Results count */}
+            {searchInput && (
+                <div className="mb-4">
+                    <p className="text-sm text-base-content/70">
+                        Ditemukan {filteredMenuItems.length} menu
+                    </p>
+                </div>
+            )}
+
+            {/* Menu Grid */}
+            {filteredMenuItems.length === 0 ? (
+                <div className="card bg-base-100 shadow-xl">
+                    <div className="card-body items-center text-center py-16">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-base-content/30 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <p className="text-lg font-semibold">Menu tidak ditemukan</p>
+                        <p className="text-sm text-base-content/70">Coba kata kunci lain untuk mencari menu</p>
+                        {searchInput && (
+                            <button 
+                                className="btn btn-sm btn-primary mt-4"
+                                onClick={() => handleSearchChange('')}
+                            >
+                                Hapus Pencarian
+                            </button>
+                        )}
+                    </div>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {filteredMenuItems.map((item) => (
                 <div key={item.id} className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
-                    {item.image && (
-                        <figure className="h-48 bg-base-200">
-                            <img 
+                    {item.image && !imageErrors.has(item.id) ? (
+                        <figure className="h-48 bg-base-200 relative overflow-hidden">
+                            <Image 
                                 src={item.image} 
                                 alt={item.name}
-                                className="w-full h-full object-cover"
+                                fill
+                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                                className="object-cover"
+                                loading="lazy"
+                                onError={() => handleImageError(item.id)}
                             />
                         </figure>
-                    )}
+                    ) : item.image && imageErrors.has(item.id) ? (
+                        <figure className="h-48 bg-base-200">
+                            <div className="flex flex-col items-center justify-center h-full text-base-content/40">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <span className="text-xs">Gambar tidak tersedia</span>
+                            </div>
+                        </figure>
+                    ) : null}
                     <div className="card-body">
                         <h2 className="card-title">{item.name}</h2>
                         {item.description && (
@@ -91,6 +188,8 @@ export default function MenuItemList({ menuItems }: { menuItems: MenuItem[] }) {
                     </div>
                 </div>
             ))}
-        </div>
+                </div>
+            )}
+        </>
     )
 }
