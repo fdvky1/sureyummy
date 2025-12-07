@@ -208,6 +208,35 @@ export async function updateOrderStatus(id: string, status: OrderStatus) {
       }
     })
 
+    // If order is cancelled or completed, check if table should be available
+    if (status === OrderStatus.CANCELLED || status === OrderStatus.COMPLETED) {
+      // Check if there are any other active orders for this table
+      const activeOrdersCount = await prisma.order.count({
+        where: {
+          tableId: order.table.id,
+          status: {
+            notIn: [OrderStatus.COMPLETED, OrderStatus.CANCELLED]
+          }
+        }
+      })
+
+      // If no active orders, set table to AVAILABLE
+      if (activeOrdersCount === 0) {
+        await prisma.table.update({
+          where: { id: order.table.id },
+          data: { status: TableStatus.AVAILABLE }
+        })
+
+        // Deactivate session if exists
+        if (order.session) {
+          await prisma.session.update({
+            where: { id: order.session.id },
+            data: { isActive: false }
+          })
+        }
+      }
+    }
+
     // Get updated tables for broadcast
     const updatedTables = await prisma.table.findMany({
       include: {
@@ -228,6 +257,7 @@ export async function updateOrderStatus(id: string, status: OrderStatus) {
 
     revalidatePath('/live')
     revalidatePath('/cashier')
+    revalidatePath('/table')
     return { success: true, data: order }
   } catch (error) {
     console.error('Error updating order status:', error)
