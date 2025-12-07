@@ -37,11 +37,11 @@ Customer scan QR code di meja untuk order langsung dari smartphone.
 Scan QR → Browse Menu → Add to Cart → Submit Order → Masuk Kitchen
 ```
 
-**Session-based Ordering:**
+**Session Management:**
 - Satu meja = satu session aktif
 - Hanya user dengan session aktif yang bisa menambah pesanan
 - Mencegah konflik order dari multiple users di meja yang sama
-- Session expired otomatis setelah pembayaran
+- User lain harus tunggu session selesai (setelah pembayaran)
 
 ---
 
@@ -81,6 +81,7 @@ Analytics dengan AI-powered insights untuk decision making.
 - Peak hours & best sellers analysis
 - AI strategic recommendations
 - Growth prediction & actionable insights
+- **AI Upselling**: Rekomendasi menu tambahan berdasarkan pesanan customer
 
 **Tech:** Firebase Genkit + OpenAI compatible LLM
 

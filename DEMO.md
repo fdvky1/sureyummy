@@ -103,7 +103,7 @@ Gunakan link berikut untuk test ordering sebagai customer (tanpa login/sudah log
 **Waktu: ~5 menit**
 
 1. **Customer Orders** (No login required)
-   - Buka link meja
+   - Buka link meja (contoh: `/order/a1`)
    - Browse menu dan add items ke cart
    - Click "Pesan" untuk submit order
    - Note: Pesanan masuk sistem
@@ -127,32 +127,56 @@ Gunakan link berikut untuk test ordering sebagai customer (tanpa login/sudah log
 
 ---
 
-### Scenario 2: Multi-Table Split Bill
-**Waktu: ~7 menit**
+### Scenario 2: Menambah Pesanan di Session Aktif
+**Waktu: ~5 menit**
 
-1. **Customer 1 Orders** (`/table/b1`)
+1. **Customer 1 Orders** (`/order/b1`)
    - Add: Rendang, Nasi Putih, Es Teh
    - Submit order
+   - Session aktif untuk Customer 1
 
-2. **Customer 2 Orders** (Same table: `/table/b1`)
-   - Add: Ayam Pop, Nasi Putih, Jus Alpukat
-   - Submit order (different session)
+2. **Customer 1 Menambah Pesanan** (Same browser/device)
+   - Buka lagi `/order/b1`
+   - Add: Gulai Ayam, Sambal
+   - Submit order
+   - Pesanan ditambahkan ke session yang sama
 
-3. **Kitchen Processes** (Login: kitchen)
-   - See 2 separate orders untuk B1
-   - Process both orders separately
+3. **Customer 2 Coba Order** (Different browser/device: `/order/b1`)
+   - Muncul alert "Meja Sedang Digunakan"
+   - Menu tidak bisa diakses
+   - Harus tunggu Customer 1 selesai bayar
 
-4. **Cashier Split Payment** (Login: cashier)
+4. **Cashier Completes Payment** (Login: cashier)
    - Go to `/cashier`
    - Click table B1
-   - See 2 separate sessions
-   - Pay session 1 (Customer 1)
-   - Pay session 2 (Customer 2)
-   - Each gets their own receipt
+   - See 1 session dengan 2 orders (Rendang + Gulai)
+   - Pay untuk session tersebut
+   - Session selesai, meja jadi available untuk customer lain
 
 ---
 
-### Scenario 3: AI Business Insights
+### Scenario 3: AI Upselling & Recommendations
+**Waktu: ~3 menit**
+
+1. **Customer Orders** (`/order/c1`)
+   - Add: Rendang, Nasi Putih
+   - Click "Pesan" untuk checkout
+
+2. **AI Upselling Modal Appears**
+   - AI analyze pesanan customer
+   - Muncul modal dengan rekomendasi menu
+   - Contoh: "Sambal Ijo", "Es Teh Manis", "Perkedel"
+   - Setiap rekomendasi ada reason (alasan)
+
+3. **Customer Action**
+   - Option 1: Add recommended items ke cart
+   - Option 2: Skip recommendations
+   - Option 3: Proceed to checkout langsung
+   - AI loading ~5-10 detik
+
+---
+
+### Scenario 4: AI Business Insights
 **Waktu: ~3 menit**
 
 1. **Admin Checks Analytics** (Login: admin@sureyummy.com)
@@ -175,7 +199,7 @@ Gunakan link berikut untuk test ordering sebagai customer (tanpa login/sudah log
 
 ---
 
-### Scenario 4: Menu Management
+### Scenario 5: Menu Management
 **Waktu: ~5 menit**
 
 1. **Admin Adds Menu** (Login: admin@sureyummy.com)
@@ -190,7 +214,7 @@ Gunakan link berikut untuk test ordering sebagai customer (tanpa login/sudah log
    - Save
 
 2. **Test Menu Availability**
-   - Open table link (`/table/a1`)
+   - Open table link (`/order/a1`)
    - Browse menu
    - See new "Gulai Kambing" item
    - Can be ordered immediately
@@ -213,7 +237,7 @@ Gunakan link berikut untuk test ordering sebagai customer (tanpa login/sudah log
 5. Order langsung dari mobile
 
 ### Option 2: Share Link
-1. Copy order link (contoh: `...vercel.app/table/a1`)
+1. Copy order link (contoh: `...vercel.app/order/a1`)
 2. Share via WhatsApp/Telegram
 3. Orang lain bisa langsung order
 4. No login required
@@ -227,10 +251,11 @@ Gunakan link berikut untuk test ordering sebagai customer (tanpa login/sudah log
 - [x] QR Code digital ordering
 - [x] Real-time kitchen display
 - [x] WebSocket live updates
-- [x] Multi-payment methods (Cash, QRIS)
+- [x] Payment method: Cash only (QRIS in roadmap)
 - [x] Thermal receipt printing (80mm)
 - [x] Session-based ordering (split bill)
 - [x] AI business intelligence
+- [x] AI upselling recommendations
 - [x] Menu CRUD with image upload
 - [x] Table management with QR generation
 - [x] Order history with filters
