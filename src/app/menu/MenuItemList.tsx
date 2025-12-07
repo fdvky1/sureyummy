@@ -5,6 +5,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import { useState, useMemo, useCallback } from "react"
 import Image from "next/image"
 import useToastStore from "@/stores/toast"
+import useModalStore from "@/stores/modal"
 import SearchBar from "@/components/SearchBar"
 import { debounce } from "lodash"
 
@@ -23,6 +24,7 @@ export default function MenuItemList({ menuItems, initialSearch = '' }: { menuIt
     const [deletingId, setDeletingId] = useState<string | null>(null)
     const [imageErrors, setImageErrors] = useState<Set<string>>(new Set())
     const { setMessage } = useToastStore()
+    const { setModal, resetModal } = useModalStore()
     
     // Search state
     const [searchInput, setSearchInput] = useState(initialSearch)
@@ -59,19 +61,34 @@ export default function MenuItemList({ menuItems, initialSearch = '' }: { menuIt
         )
     }, [menuItems, searchInput])
 
-    async function handleDelete(id: string) {
-        if (!confirm('Apakah Anda yakin ingin menghapus menu ini?')) return
-        
-        setDeletingId(id)
-        const result = await deleteMenuItem(id)
-        
-        if (result.success) {
-            router.refresh()
-            setMessage('Menu berhasil dihapus', 'success')
-        } else {
-            setMessage(result.error || 'Gagal menghapus menu', 'error')
-        }
-        setDeletingId(null)
+    function handleDelete(id: string, menuName: string) {
+        setModal({
+            title: 'Konfirmasi Hapus Menu',
+            content: `Apakah Anda yakin ingin menghapus menu "${menuName}"? Menu akan dipindahkan ke tempat sampah dan bisa dipulihkan kembali.`,
+            cancelButton: {
+                text: 'Batal',
+                active: true,
+                onClick: () => resetModal()
+            },
+            confirmButton: {
+                text: 'Hapus',
+                active: true,
+                className: 'btn-error',
+                onClick: async () => {
+                    resetModal()
+                    setDeletingId(id)
+                    const result = await deleteMenuItem(id)
+                    
+                    if (result.success) {
+                        router.refresh()
+                        setMessage('Menu berhasil dihapus', 'success')
+                    } else {
+                        setMessage(result.error || 'Gagal menghapus menu', 'error')
+                    }
+                    setDeletingId(null)
+                }
+            }
+        })
     }
 
     function handleImageError(id: string) {
@@ -170,7 +187,7 @@ export default function MenuItemList({ menuItems, initialSearch = '' }: { menuIt
                             </button>
                             <button 
                                 className="btn btn-sm btn-error btn-outline"
-                                onClick={() => handleDelete(item.id)}
+                                onClick={() => handleDelete(item.id, item.name)}
                                 disabled={deletingId === item.id}
                             >
                                 {deletingId === item.id ? (
