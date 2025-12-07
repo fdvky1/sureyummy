@@ -1,15 +1,17 @@
 'use client'
 
-import { useState } from "react"
+import { useState, useMemo, useCallback } from "react"
 import { createOrder, getAIUpsellRecommendations } from "./actions"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams, usePathname } from "next/navigation"
 import MenuCard from "@/components/MenuCard"
 import Cart from "@/components/Cart"
 import UpsellModal from "@/components/UpsellModal"
+import SearchBar from "@/components/SearchBar"
 import { PaymentMethod } from "@/generated/prisma/browser"
 import { createOrderSchema } from "@/lib/validations"
 import { z } from "zod"
 import useToastStore from "@/stores/toast"
+import { debounce } from "lodash"
 
 type MenuItem = {
     id: string
@@ -43,6 +45,8 @@ type KioskViewProps = {
 
 export default function KioskView({ table, menuItems, activeOrder, isOccupied, hasValidSession }: KioskViewProps) {
     const router = useRouter()
+    const pathname = usePathname()
+    const searchParams = useSearchParams()
     const [cart, setCart] = useState<CartItem[]>([])
     const [showCart, setShowCart] = useState(false)
     const [showCheckout, setShowCheckout] = useState(false)
@@ -56,6 +60,41 @@ export default function KioskView({ table, menuItems, activeOrder, isOccupied, h
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.CASH)
     const [loading, setLoading] = useState(false)
     const { setMessage } = useToastStore()
+    
+    // Search state
+    const [searchInput, setSearchInput] = useState(searchParams.get('search') || '')
+
+    // Debounced URL update
+    const updateSearchUrl = useCallback(
+        debounce((value: string) => {
+            const params = new URLSearchParams(searchParams.toString())
+            if (value) {
+                params.set('search', value)
+            } else {
+                params.delete('search')
+            }
+            const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
+            router.replace(newUrl, { scroll: false })
+        }, 300),
+        [pathname, router]
+    )
+
+    // Handle search input change
+    const handleSearchChange = (value: string) => {
+        setSearchInput(value)
+        updateSearchUrl(value)
+    }
+
+    // Filter menu items based on search
+    const filteredMenuItems = useMemo(() => {
+        if (!searchInput) return menuItems
+        
+        const searchLower = searchInput.toLowerCase()
+        return menuItems.filter(item => 
+            item.name.toLowerCase().includes(searchLower) ||
+            (item.description?.toLowerCase().includes(searchLower) ?? false)
+        )
+    }, [menuItems, searchInput])
 
     function handleAddToCart(item: MenuItem) {
         setCart(prev => {
@@ -177,7 +216,7 @@ export default function KioskView({ table, menuItems, activeOrder, isOccupied, h
             {/* Header */}
             <div className="bg-primary text-primary-content p-6 shadow-lg">
                 <div className="max-w-7xl mx-auto">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-4">
                         <div>
                             <h1 className="text-3xl font-bold">Restoran Nasi Padang</h1>
                             <p className="text-sm opacity-90 mt-1">Silakan pilih menu Anda</p>
@@ -187,6 +226,18 @@ export default function KioskView({ table, menuItems, activeOrder, isOccupied, h
                             <p className="text-2xl font-bold">{table.name}</p>
                         </div>
                     </div>
+                    
+                    {/* Search Bar - Hidden when table occupied without valid session */}
+                    {(!isOccupied || hasValidSession) && (
+                        <div className="mt-4">
+                            <SearchBar
+                                value={searchInput}
+                                onChange={setSearchInput}
+                                placeholder="Cari menu..."
+                                className="bg-white/95 text-base-content"
+                            />
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -219,10 +270,17 @@ export default function KioskView({ table, menuItems, activeOrder, isOccupied, h
 
             {/* Main Content */}
             <div className="max-w-7xl mx-auto p-6 pb-32 lg:pb-6">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className={"grid grid-cols-1 gap-6 " + (isOccupied && !hasValidSession ? '' : 'lg:grid-cols-3')}>
                     {/* Menu Grid */}
                     <div className="lg:col-span-2">
-                        <h2 className="text-2xl font-bold mb-4">Menu</h2>
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-2xl font-bold">Menu</h2>
+                            {searchInput && (
+                                <p className="text-sm text-base-content/70">
+                                    Ditemukan {filteredMenuItems.length} menu
+                                </p>
+                            )}
+                        </div>
                         {isOccupied && !hasValidSession ? (
                             <div className="card bg-base-100 shadow-xl">
                                 <div className="card-body items-center text-center py-16">
@@ -233,15 +291,31 @@ export default function KioskView({ table, menuItems, activeOrder, isOccupied, h
                                     <p className="text-sm text-base-content/70">Menu tidak dapat diakses saat meja sedang digunakan</p>
                                 </div>
                             </div>
-                        ) : menuItems.length === 0 ? (
+                        ) : filteredMenuItems.length === 0 ? (
                             <div className="card bg-base-100 shadow-xl">
                                 <div className="card-body items-center text-center py-16">
-                                    <p className="text-lg">Belum ada menu tersedia</p>
+                                    {searchInput ? (
+                                        <>
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-base-content/30 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                            </svg>
+                                            <p className="text-lg font-semibold">Menu tidak ditemukan</p>
+                                            <p className="text-sm text-base-content/70">Coba kata kunci lain untuk mencari menu</p>
+                                            <button 
+                                                className="btn btn-sm btn-primary mt-4"
+                                                onClick={() => handleSearchChange('')}
+                                            >
+                                                Hapus Pencarian
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <p className="text-lg">Belum ada menu tersedia</p>
+                                    )}
                                 </div>
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {menuItems.map(item => (
+                                {filteredMenuItems.map(item => (
                                     <MenuCard 
                                         key={item.id} 
                                         item={item} 
