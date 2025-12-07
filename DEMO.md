@@ -12,21 +12,6 @@ Demo environment untuk testing dan preview fitur SureYummy.
 
 ---
 
-## 📸 Screenshots
-
-### Customer Ordering
-![Customer View(Kiosk)](.docs/images/CustomerKiosk.png)
-
-### Kitchen Display
-![Kitchen Display System](.docs/images/KitchenKiosk.png)
-
-### Cashier Dashboard
-![Cashier Dashboard](.docs/images/CashierPage.png)
-
-### Admin Dashboard
-![Cashier Dashboard](.docs/images/AdminDashboard.png)
----
-
 ## 👥 Test Accounts
 
 Gunakan credentials berikut untuk login:
@@ -111,6 +96,23 @@ Gunakan link berikut untuk test ordering sebagai customer (tanpa login/sudah log
 | [A6](https://sureyummy.vercel.app/order/a6) | [B6](https://sureyummy.vercel.app/order/b6) | [C6](https://sureyummy.vercel.app/order/c6) |
 | [A7](https://sureyummy.vercel.app/order/a7) |
 | [A8](https://sureyummy.vercel.app/order/a8) | 
+
+
+## 📸 Screenshots
+
+### Customer Ordering
+![Customer View(Kiosk)](.docs/images/CustomerKiosk.png)
+
+### Kitchen Display
+![Kitchen Display System](.docs/images/KitchenKiosk.png)
+
+### Cashier Dashboard
+![Cashier Dashboard](.docs/images/CashierPage.png)
+
+### Admin Dashboard
+![Cashier Dashboard](.docs/images/AdminDashboard.png)
+---
+
 
 ## 🎯 Demo Scenarios
 
