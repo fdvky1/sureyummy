@@ -4,7 +4,7 @@ import { redirect } from "next/navigation"
 import Link from "next/link"
 import TableList from "./TableList"
 
-export default async function Page(){
+export default async function Page({ searchParams }: { searchParams: Promise<{ search?: string }> }){
     const session = await getAuthSession()
     
     if (!session) {
@@ -18,6 +18,9 @@ export default async function Page(){
 
     const result = await getTables()
     const tables = result.success && result.data ? result.data : []
+    
+    const { search } = await searchParams
+    const searchQuery = search || ''
 
     return (
         <div className="min-h-screen bg-base-200 p-8">
@@ -49,7 +52,7 @@ export default async function Page(){
                         </div>
                     </div>
                 ) : (
-                    <TableList tables={tables} />
+                    <TableList tables={tables} initialSearch={searchQuery} />
                 )}
             </div>
         </div>

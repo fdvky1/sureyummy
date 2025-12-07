@@ -2,13 +2,16 @@
 
 import { deleteTable, updateTableStatus } from "./actions"
 import { TableStatus } from "@/generated/prisma/browser"
-import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useRouter, usePathname, useSearchParams } from "next/navigation"
+import { useState, useMemo, useCallback } from "react"
 import QRCode from "qrcode"
 import useToastStore from "@/stores/toast"
 import { getTableStatusLabel } from "@/lib/enumHelpers"
 import Link from "next/link"
 import { RiFileCopy2Line } from "@remixicon/react"
+import SearchBar from "@/components/SearchBar"
+import { debounce } from "lodash"
+
 type Table = {
     id: string
     name: string
@@ -17,10 +20,47 @@ type Table = {
     orders: any[]
 }
 
-export default function TableList({ tables }: { tables: Table[] }) {
+export default function TableList({ tables, initialSearch = '' }: { tables: Table[], initialSearch?: string }) {
     const router = useRouter()
+    const pathname = usePathname()
+    const searchParams = useSearchParams()
     const [deletingId, setDeletingId] = useState<string | null>(null)
     const { setMessage } = useToastStore()
+    
+    // Search state
+    const [searchInput, setSearchInput] = useState(initialSearch)
+
+    // Debounced URL update
+    const updateSearchUrl = useCallback(
+        debounce((value: string) => {
+            const params = new URLSearchParams(searchParams.toString())
+            if (value) {
+                params.set('search', value)
+            } else {
+                params.delete('search')
+            }
+            const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
+            router.replace(newUrl, { scroll: false })
+        }, 300),
+        [pathname, router]
+    )
+
+    // Handle search input change
+    const handleSearchChange = (value: string) => {
+        setSearchInput(value)
+        updateSearchUrl(value)
+    }
+
+    // Filter tables based on search
+    const filteredTables = useMemo(() => {
+        if (!searchInput) return tables
+        
+        const searchLower = searchInput.toLowerCase()
+        return tables.filter(table => 
+            table.name.toLowerCase().includes(searchLower) ||
+            table.slug.toLowerCase().includes(searchLower)
+        )
+    }, [tables, searchInput])
 
     async function handleDelete(id: string) {
         if (!confirm('Apakah Anda yakin ingin menghapus meja ini?')) return
@@ -164,8 +204,47 @@ export default function TableList({ tables }: { tables: Table[] }) {
     }
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {tables.map((table) => (
+        <>
+            {/* Search Bar */}
+            <div className="mb-6">
+                <SearchBar
+                    value={searchInput}
+                    onChange={handleSearchChange}
+                    placeholder="Cari meja..."
+                />
+            </div>
+
+            {/* Results count */}
+            {searchInput && (
+                <div className="mb-4">
+                    <p className="text-sm text-base-content/70">
+                        Ditemukan {filteredTables.length} meja
+                    </p>
+                </div>
+            )}
+
+            {/* Tables Grid */}
+            {filteredTables.length === 0 ? (
+                <div className="card bg-base-100 shadow-xl">
+                    <div className="card-body items-center text-center py-16">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-base-content/30 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <p className="text-lg font-semibold">Meja tidak ditemukan</p>
+                        <p className="text-sm text-base-content/70">Coba kata kunci lain untuk mencari meja</p>
+                        {searchInput && (
+                            <button 
+                                className="btn btn-sm btn-primary mt-4"
+                                onClick={() => handleSearchChange('')}
+                            >
+                                Hapus Pencarian
+                            </button>
+                        )}
+                    </div>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredTables.map((table) => (
                 <div key={table.id} className="card bg-base-100 shadow-xl">
                     <div className="card-body">
                         <div className="flex items-start justify-between">
@@ -243,6 +322,8 @@ export default function TableList({ tables }: { tables: Table[] }) {
                     </div>
                 </div>
             ))}
-        </div>
+                </div>
+            )}
+        </>
     )
 }
