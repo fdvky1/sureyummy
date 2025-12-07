@@ -218,7 +218,7 @@ export default function KioskView({ table, menuItems, activeOrder, isOccupied, h
                 <div className="max-w-7xl mx-auto">
                     <div className="flex items-center justify-between mb-4">
                         <div>
-                            <h1 className="text-3xl font-bold">Restoran Nasi Padang</h1>
+                            <h1 className="text-3xl font-bold">SureYummy</h1>
                             <p className="text-sm opacity-90 mt-1">Silakan pilih menu Anda</p>
                         </div>
                         <div className="text-right">

@@ -8,8 +8,23 @@ Demo environment untuk testing dan preview fitur SureYummy.
 
 **Live Demo**: [https://sureyummy.vercel.app](https://sureyummy.vercel.app)
 
-> **Note**: Beberapa fitur management tidak dapat digunakan saat mode demo, deploy untuk pengalaman penuh .
+> **Note**: Beberapa fitur management tidak dapat digunakan saat mode demo, deploy untuk pengalaman penuh.
 
+---
+
+## 📸 Screenshots
+
+### Customer Ordering
+![Customer View(Kiosk)](.docs/images/CustomerKiosk.png)
+
+### Kitchen Display
+![Kitchen Display System](.docs/images/KitchenKiosk.png)
+
+### Cashier Dashboard
+![Cashier Dashboard](.docs/images/CashierPage.png)
+
+### Admin Dashboard
+![Cashier Dashboard](.docs/images/AdminDashboard.png)
 ---
 
 ## 👥 Test Accounts
@@ -109,7 +124,7 @@ Gunakan link berikut untuk test ordering sebagai customer (tanpa login/sudah log
    - Note: Pesanan masuk sistem
 
 2. **Kitchen Receives & Processes** (Login: kitchen@sureyummy.com)
-   - Login di tab baru
+   - Login di browser lain
    - Go to `/live`
    - Lihat order baru dengan highlight kuning
    - Click "Konfirmasi & Mulai Masak"
@@ -118,7 +133,7 @@ Gunakan link berikut untuk test ordering sebagai customer (tanpa login/sudah log
    - Order auto-removed dari display
 
 3. **Cashier Completes Payment** (Login: cashier@sureyummy.com)
-   - Login di tab lain
+   - Login di browser lain
    - Go to `/cashier`
    - Find table A1 dengan READY order
    - Review order details
