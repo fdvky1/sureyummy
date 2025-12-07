@@ -2,6 +2,7 @@
 
 import prisma from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
+import { validateDemoOperation } from "@/lib/demo"
 
 export async function getMenuItems() {
   try {
@@ -17,6 +18,9 @@ export async function getMenuItems() {
 
 export async function deleteMenuItem(id: string) {
   try {
+    // Check demo mode
+    validateDemoOperation('delete', id, 'MenuItem')
+    
     await prisma.menuItem.delete({
       where: { id }
     })
@@ -24,6 +28,7 @@ export async function deleteMenuItem(id: string) {
     return { success: true }
   } catch (error) {
     console.error('Error deleting menu item:', error)
-    return { success: false, error: 'Failed to delete menu item' }
+    const message = error instanceof Error ? error.message : 'Failed to delete menu item'
+    return { success: false, error: message }
   }
 }

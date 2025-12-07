@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 import { Role } from "@/generated/prisma/client"
 import { z } from "zod"
 import bcrypt from "bcrypt"
+import { validateDemoOperation } from "@/lib/demo"
 
 const createUserSchema = z.object({
   name: z.string().min(1, "Nama harus diisi"),
@@ -88,6 +89,9 @@ export async function createUser(data: z.infer<typeof createUserSchema>) {
 
 export async function updateUser(id: string, data: z.infer<typeof updateUserSchema>) {
   try {
+    // Check demo mode
+    validateDemoOperation('update', id, 'User')
+    
     const validated = updateUserSchema.parse(data)
     
     // Check if email already exists (exclude current user)
@@ -132,12 +136,16 @@ export async function updateUser(id: string, data: z.infer<typeof updateUserSche
       return { success: false, error: error.issues[0].message }
     }
     console.error('Error updating user:', error)
-    return { success: false, error: 'Gagal mengubah user' }
+    const message = error instanceof Error ? error.message : 'Gagal mengubah user'
+    return { success: false, error: message }
   }
 }
 
 export async function deleteUser(id: string) {
   try {
+    // Check demo mode
+    validateDemoOperation('delete', id, 'User')
+    
     const deleted = await prisma.user.deleteMany({
       where: { 
         id,
@@ -153,6 +161,7 @@ export async function deleteUser(id: string) {
     return { success: true }
   } catch (error) {
     console.error('Error deleting user:', error)
-    return { success: false, error: 'Gagal menghapus user' }
+    const message = error instanceof Error ? error.message : 'Gagal menghapus user'
+    return { success: false, error: message }
   }
 }

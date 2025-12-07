@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { TableStatus } from "@/generated/prisma/client"
+import { validateDemoOperation } from "@/lib/demo"
 
 export async function getTables() {
   try {
@@ -52,6 +53,9 @@ export async function updateTableStatus(id: string, status: TableStatus) {
 
 export async function deleteTable(id: string) {
   try {
+    // Check demo mode
+    validateDemoOperation('delete', id, 'Table')
+    
     // Soft delete
     await prisma.table.update({
       where: { id },
@@ -62,7 +66,8 @@ export async function deleteTable(id: string) {
     return { success: true }
   } catch (error) {
     console.error('Error deleting table:', error)
-    return { success: false, error: 'Failed to delete table' }
+    const message = error instanceof Error ? error.message : 'Failed to delete table'
+    return { success: false, error: message }
   }
 }
 
@@ -80,6 +85,9 @@ export async function getTableById(id: string) {
 
 export async function updateTable(id: string, data: { name: string; slug: string }) {
   try {
+    // Check demo mode
+    validateDemoOperation('update', id, 'Table')
+    
     const table = await prisma.table.update({
       where: { id },
       data: {
@@ -92,6 +100,7 @@ export async function updateTable(id: string, data: { name: string; slug: string
     return { success: true, data: table }
   } catch (error) {
     console.error('Error updating table:', error)
-    return { success: false, error: 'Failed to update table' }
+    const message = error instanceof Error ? error.message : 'Failed to update table'
+    return { success: false, error: message }
   }
 }

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 import { updateMenuItemSchema } from "@/lib/validations"
 import { uploadImage, deleteImage } from "@/lib/minio"
 import { z } from "zod"
+import { validateDemoOperation } from "@/lib/demo"
 
 export async function getMenuItemById(id: string) {
   try {
@@ -20,6 +21,9 @@ export async function getMenuItemById(id: string) {
 
 export async function updateMenuItem(id: string, formData: FormData) {
   try {
+    // Check demo mode
+    validateDemoOperation('update', id, 'MenuItem')
+    
     const name = formData.get('name') as string
     const description = formData.get('description') as string
     const price = parseFloat(formData.get('price') as string)
@@ -74,6 +78,7 @@ export async function updateMenuItem(id: string, formData: FormData) {
       return { success: false, error: error.issues[0].message }
     }
     console.error('Error updating menu item:', error)
-    return { success: false, error: 'Gagal mengupdate menu' }
+    const message = error instanceof Error ? error.message : 'Gagal mengupdate menu'
+    return { success: false, error: message }
   }
 }

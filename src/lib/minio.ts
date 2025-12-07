@@ -1,5 +1,6 @@
 import { Client } from 'minio'
 import { randomUUID } from 'crypto'
+import { validateMinioOperation } from './demo'
 
 // Compatible with MinIO, S3, and Cloudflare R2
 // For Cloudflare R2:
@@ -65,6 +66,9 @@ export async function ensureBucketExists() {
 
 export async function uploadImage(file: File) {
   try {
+    // Check demo mode
+    validateMinioOperation('upload')
+    
     // Validate file type
     const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg']
     if (!validTypes.includes(file.type)) {
@@ -103,12 +107,16 @@ export async function uploadImage(file: File) {
     return { success: true, url }
   } catch (error) {
     console.error('Error uploading image:', error)
-    return { success: false, error: 'Gagal mengupload gambar' }
+    const message = error instanceof Error ? error.message : 'Gagal mengupload gambar'
+    return { success: false, error: message }
   }
 }
 
 export async function deleteImage(imageUrl: string) {
   try {
+    // Check demo mode
+    validateMinioOperation('delete')
+    
     // Extract filename from URL
     const url = new URL(imageUrl)
     const filename = url.pathname.split(`/${BUCKET_NAME}/`)[1]
@@ -120,7 +128,8 @@ export async function deleteImage(imageUrl: string) {
     return { success: true }
   } catch (error) {
     console.error('Error deleting image:', error)
-    return { success: false, error: 'Gagal menghapus gambar' }
+    const message = error instanceof Error ? error.message : 'Gagal menghapus gambar'
+    return { success: false, error: message }
   }
 }
 
