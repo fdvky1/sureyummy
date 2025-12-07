@@ -2,7 +2,8 @@
 
 import prisma from "@/lib/prisma"
 import { OrderStatus } from "@/generated/prisma/client"
-import { startOfDay, endOfDay, subDays } from "date-fns"
+import { startOfDay, endOfDay, subDays, endOfMonth, format } from "date-fns"
+import { id } from "date-fns/locale"
 
 type DateRange = {
     startDate?: Date
@@ -161,5 +162,119 @@ export async function getRevenueByPeriod(params: { days?: number } = {}) {
             success: false,
             error: 'Gagal mengambil data pendapatan'
         }
+    }
+}
+
+export async function getMonthlyReport(year: number, month: number) {
+    try {
+        const startDate = new Date(year, month - 1, 1)
+        const endDate = endOfMonth(startDate)
+
+        const orders = await prisma.order.findMany({
+            where: {
+                createdAt: {
+                    gte: startDate,
+                    lte: endDate
+                },
+                status: OrderStatus.COMPLETED
+            },
+            include: {
+                table: {
+                    select: {
+                        name: true
+                    }
+                },
+                orderItems: {
+                    include: {
+                        menuItem: {
+                            select: {
+                                name: true,
+                                category: true
+                            }
+                        }
+                    }
+                }
+            },
+            orderBy: {
+                createdAt: 'asc'
+            }
+        })
+
+        const totalRevenue = orders.reduce((sum, order) => sum + order.totalPrice, 0)
+        const totalOrders = orders.length
+
+        // Group by category
+        const categoryStats = orders.reduce((acc, order) => {
+            order.orderItems.forEach(item => {
+                const category = item.menuItem.category || 'UNCATEGORIZED'
+                if (!acc[category]) {
+                    acc[category] = {
+                        revenue: 0,
+                        quantity: 0
+                    }
+                }
+                acc[category].revenue += item.price * item.quantity
+                acc[category].quantity += item.quantity
+            })
+            return acc
+        }, {} as Record<string, { revenue: number, quantity: number }>)
+
+        // Top items
+        const itemStats = orders.reduce((acc, order) => {
+            order.orderItems.forEach(item => {
+                const name = item.menuItem.name
+                if (!acc[name]) {
+                    acc[name] = {
+                        name,
+                        quantity: 0,
+                        revenue: 0
+                    }
+                }
+                acc[name].quantity += item.quantity
+                acc[name].revenue += item.price * item.quantity
+            })
+            return acc
+        }, {} as Record<string, { name: string, quantity: number, revenue: number }>)
+
+        const topItems = Object.values(itemStats)
+            .sort((a, b) => b.revenue - a.revenue)
+            .slice(0, 10)
+
+        // Daily breakdown
+        const dailyStats = orders.reduce((acc, order) => {
+            const date = format(order.createdAt, 'yyyy-MM-dd', { locale: id })
+            if (!acc[date]) {
+                acc[date] = {
+                    date,
+                    revenue: 0,
+                    orderCount: 0
+                }
+            }
+            acc[date].revenue += order.totalPrice
+            acc[date].orderCount += 1
+            return acc
+        }, {} as Record<string, { date: string, revenue: number, orderCount: number }>)
+
+        return {
+            success: true,
+            data: {
+                period: {
+                    year,
+                    month,
+                    monthName: format(startDate, 'MMMM yyyy', { locale: id })
+                },
+                summary: {
+                    totalRevenue,
+                    totalOrders,
+                    averageOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0
+                },
+                categoryStats,
+                topItems,
+                dailyStats: Object.values(dailyStats).sort((a, b) => a.date.localeCompare(b.date))
+            }
+        }
+    } catch (error) {
+        console.error('Error getting monthly report:', error)
+        return { success: false, error: 'Failed to get monthly report' }
     }
 }

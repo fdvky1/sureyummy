@@ -1,4 +1,4 @@
-import { getMonthlyReport } from "../actions"
+import { getMonthlyReport } from "./actions"
 import { getAuthSession } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import ReportsView from "./ReportsView"
