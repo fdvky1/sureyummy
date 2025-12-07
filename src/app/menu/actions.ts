@@ -7,6 +7,7 @@ import { validateDemoOperation } from "@/lib/demo"
 export async function getMenuItems() {
   try {
     const menuItems = await prisma.menuItem.findMany({
+      where: { deletedAt: null },
       orderBy: { name: 'asc' }
     })
     return { success: true, data: menuItems }
@@ -21,8 +22,10 @@ export async function deleteMenuItem(id: string) {
     // Check demo mode
     validateDemoOperation('delete', id, 'MenuItem')
     
-    await prisma.menuItem.delete({
-      where: { id }
+    // Soft delete: set deletedAt timestamp
+    await prisma.menuItem.update({
+      where: { id },
+      data: { deletedAt: new Date() }
     })
     revalidatePath('/menu')
     return { success: true }

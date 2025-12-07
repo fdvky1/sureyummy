@@ -9,8 +9,11 @@ import { validateDemoOperation } from "@/lib/demo"
 
 export async function getMenuItemById(id: string) {
   try {
-    const menuItem = await prisma.menuItem.findUnique({
-      where: { id }
+    const menuItem = await prisma.menuItem.findFirst({
+      where: { 
+        id,
+        deletedAt: null 
+      }
     })
     return { success: true, data: menuItem }
   } catch (error) {

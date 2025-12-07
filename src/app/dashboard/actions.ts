@@ -112,8 +112,11 @@ export async function getDashboardStats() {
     // Get menu item details
     const topSellingWithDetails = await Promise.all(
       topSellingItems.map(async (item) => {
-        const menuItem = await prisma.menuItem.findUnique({
-          where: { id: item.menuItemId },
+        const menuItem = await prisma.menuItem.findFirst({
+          where: { 
+            id: item.menuItemId,
+            deletedAt: null 
+          },
           select: {
             id: true,
             name: true,
