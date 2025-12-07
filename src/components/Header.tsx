@@ -11,7 +11,7 @@ export default function Header() {
   const pathname = usePathname()
 
   // Don't show header on auth pages or kiosk pages
-  if (pathname.startsWith('/signin') || (pathname !== '/table/create' && pathname.startsWith('/table/'))) {
+  if (pathname.startsWith('/signin') || pathname.startsWith('/order/')) {
     return null
   }
 

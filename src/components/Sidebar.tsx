@@ -32,7 +32,7 @@ export default function Sidebar() {
   }, [pathname, close])
 
   // Don't show sidebar on auth pages or kiosk pages
-  if (pathname.startsWith('/signin') || pathname == '/' || (pathname !== '/table/create' && pathname.startsWith('/table/'))) {
+  if (pathname.startsWith('/signin') || pathname == '/') {
     return null
   }
 
