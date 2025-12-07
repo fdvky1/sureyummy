@@ -16,9 +16,9 @@ export default function Header() {
   }
 
   // Don't show if not authenticated
-  if (status === 'unauthenticated') {
-    return null
-  }
+  // if (status === 'unauthenticated') {
+  //   return null
+  // }
 
   return (
     <div className={"sticky top-0 z-30 flex items-center gap-4 bg-base-100 border-b border-base-300 px-4 py-3 shadow-sm " + (isOpen && pathname != '/' ? 'lg:-ml-64' : '')}>
