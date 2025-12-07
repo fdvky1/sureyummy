@@ -79,7 +79,7 @@
   @apply text-white;
 }
 
-.badge-warning {
+.badge-warning, .badge-secondary {
   @apply text-white;
 }
 
