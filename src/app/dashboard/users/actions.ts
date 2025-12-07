@@ -47,6 +47,11 @@ export async function createUser(data: z.infer<typeof createUserSchema>) {
   try {
     const validated = createUserSchema.parse(data)
     
+    // Prevent creating ADMIN users
+    if (validated.role === Role.ADMIN) {
+      return { success: false, error: 'Tidak diizinkan membuat user dengan role Admin' }
+    }
+    
     // Check if email already exists
     const existingUser = await prisma.user.findUnique({
       where: { email: validated.email }
@@ -93,6 +98,11 @@ export async function updateUser(id: string, data: z.infer<typeof updateUserSche
     validateDemoOperation('update', id, 'User')
     
     const validated = updateUserSchema.parse(data)
+    
+    // Prevent updating to ADMIN role
+    if (validated.role === Role.ADMIN) {
+      return { success: false, error: 'Tidak diizinkan mengubah role menjadi Admin' }
+    }
     
     // Check if email already exists (exclude current user)
     if (validated.email) {
