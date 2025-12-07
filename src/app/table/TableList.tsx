@@ -4,13 +4,14 @@ import { deleteTable, updateTableStatus } from "./actions"
 import { TableStatus } from "@/generated/prisma/browser"
 import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import { useState, useMemo, useCallback } from "react"
-import QRCode from "qrcode"
 import useToastStore from "@/stores/toast"
+import useModalStore from "@/stores/modal"
 import { getTableStatusLabel } from "@/lib/enumHelpers"
 import Link from "next/link"
 import { RiFileCopy2Line } from "@remixicon/react"
 import SearchBar from "@/components/SearchBar"
 import { debounce } from "lodash"
+import { printQR } from "@/utils/printQR"
 
 type Table = {
     id: string
@@ -26,6 +27,7 @@ export default function TableList({ tables, initialSearch = '' }: { tables: Tabl
     const searchParams = useSearchParams()
     const [deletingId, setDeletingId] = useState<string | null>(null)
     const { setMessage } = useToastStore()
+    const { setModal, resetModal } = useModalStore()
     
     // Search state
     const [searchInput, setSearchInput] = useState(initialSearch)
@@ -62,19 +64,34 @@ export default function TableList({ tables, initialSearch = '' }: { tables: Tabl
         )
     }, [tables, searchInput])
 
-    async function handleDelete(id: string) {
-        if (!confirm('Apakah Anda yakin ingin menghapus meja ini?')) return
-        
-        setDeletingId(id)
-        const result = await deleteTable(id)
-        
-        if (result.success) {
-            router.refresh()
-            setMessage('Meja berhasil dihapus', 'success')
-        } else {
-            setMessage(result.error || 'Gagal menghapus meja', 'error')
-        }
-        setDeletingId(null)
+    function handleDelete(id: string, tableName: string) {
+        setModal({
+            title: 'Konfirmasi Hapus Meja',
+            content: `Apakah Anda yakin ingin menghapus "${tableName}"? Tindakan ini tidak dapat dibatalkan.`,
+            cancelButton: {
+                text: 'Batal',
+                active: true,
+                onClick: () => resetModal()
+            },
+            confirmButton: {
+                text: 'Hapus',
+                active: true,
+                className: 'btn-error',
+                onClick: async () => {
+                    resetModal()
+                    setDeletingId(id)
+                    const result = await deleteTable(id)
+                    
+                    if (result.success) {
+                        router.refresh()
+                        setMessage('Meja berhasil dihapus', 'success')
+                    } else {
+                        setMessage(result.error || 'Gagal menghapus meja', 'error')
+                    }
+                    setDeletingId(null)
+                }
+            }
+        })
     }
 
     async function handleStatusChange(id: string, status: TableStatus) {
@@ -96,96 +113,15 @@ export default function TableList({ tables, initialSearch = '' }: { tables: Tabl
     async function handlePrintQR(table: Table) {
         const url = `${window.location.origin}/order/${table.slug}`
         
-        try {
-            // Generate QR code as data URL
-            const qrDataUrl = await QRCode.toDataURL(url, {
-                width: 400,
-                margin: 2,
-                color: {
-                    dark: '#000000',
-                    light: '#FFFFFF'
-                }
-            })
+        const result = await printQR({
+            url,
+            title: table.name,
+            subtitle: 'SureYummy',
+            instruction: 'Scan QR Code untuk memesan'
+        })
 
-            // Create a new window for printing
-            const printWindow = window.open('', '_blank')
-            if (!printWindow) {
-                setMessage('Mohon izinkan popup untuk mencetak QR Code', 'warning')
-                return
-            }
-
-            printWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>QR Code - ${table.name}</title>
-                    <style>
-                        body {
-                            font-family: 'Plus Jakarta Sans', sans-serif;
-                            display: flex;
-                            flex-direction: column;
-                            align-items: center;
-                            justify-content: center;
-                            min-height: 100vh;
-                            margin: 0;
-                            padding: 20px;
-                        }
-                        .container {
-                            text-align: center;
-                            border: 2px solid #000;
-                            padding: 40px;
-                            border-radius: 12px;
-                        }
-                        h1 {
-                            font-size: 48px;
-                            margin: 0 0 10px 0;
-                            font-weight: bold;
-                        }
-                        .subtitle {
-                            font-size: 24px;
-                            color: #666;
-                            margin: 0 0 30px 0;
-                        }
-                        img {
-                            display: block;
-                            margin: 0 auto;
-                        }
-                        .instruction {
-                            margin-top: 30px;
-                            font-size: 20px;
-                            color: #333;
-                        }
-                        @media print {
-                            body {
-                                background: white;
-                            }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <h1>${table.name}</h1>
-                        <p class="subtitle">Restoran Nasi Padang</p>
-                        <img src="${qrDataUrl}" alt="QR Code" />
-                        <p class="instruction">Scan QR Code untuk memesan</p>
-                    </div>
-                    <script>
-                        window.onload = function() {
-                            setTimeout(function() {
-                                window.print();
-                            }, 500);
-                        }
-                        window.onafterprint = function() {
-                            window.close();
-                        }
-                    </script>
-                </body>
-                </html>
-            `)
-            printWindow.document.close()
-        } catch (error) {
-            console.error('Error generating QR code:', error)
-            setMessage('Gagal membuat QR Code', 'error')
+        if (!result.success) {
+            setMessage(result.error || 'Gagal mencetak QR Code', result.error?.includes('popup') ? 'warning' : 'error')
         }
     }
 
@@ -307,7 +243,7 @@ export default function TableList({ tables, initialSearch = '' }: { tables: Tabl
                             </Link>
                             <button 
                                 className="btn btn-sm btn-error btn-outline"
-                                onClick={() => handleDelete(table.id)}
+                                onClick={() => handleDelete(table.id, table.name)}
                                 disabled={deletingId === table.id}
                             >
                                 {deletingId === table.id ? (
