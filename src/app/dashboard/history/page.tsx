@@ -1,12 +1,13 @@
-import { getOrderHistory } from "../actions"
+import { getOrderHistory } from "./actions"
 import { getAuthSession } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import HistoryView from "./HistoryView"
+import { OrderStatus } from "@/generated/prisma/client"
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-export default async function Page() {
+export default async function Page({ searchParams }: { searchParams: Promise<{ page?: string, status?: string }> }) {
     const session = await getAuthSession()
     
     if (!session) {
@@ -18,8 +19,18 @@ export default async function Page() {
         redirect('/live')
     }
 
-    const historyResult = await getOrderHistory({ limit: 100 })
-    const orders = historyResult.success && historyResult.data ? historyResult.data.orders : []
+    const { page, status } = await searchParams
+    const currentPage = page ? parseInt(page) : 1
+    const filterStatus = (status as OrderStatus | 'ALL') || 'ALL'
 
-    return <HistoryView orders={orders} />
+    const historyResult = await getOrderHistory({ 
+        page: currentPage, 
+        limit: 20,
+        status: filterStatus
+    })
+    
+    const orders = historyResult.success && historyResult.data ? historyResult.data.orders : []
+    const pagination = historyResult.success && historyResult.data ? historyResult.data.pagination : null
+
+    return <HistoryView orders={orders} pagination={pagination} initialStatus={filterStatus} />
 }

@@ -1,11 +1,13 @@
 'use client'
 
 import { useState } from "react"
+import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
 import { OrderStatus, MenuCategory, PaymentMethod } from "@/generated/prisma/browser"
 import { getMenuCategoryLabel, getOrderStatusLabel, getPaymentMethodLabel } from "@/lib/enumHelpers"
 import ReceiptPrint from "@/components/ReceiptPrint"
+import Pagination from "@/components/Pagination"
 
 type Order = {
     id: string
@@ -37,13 +39,38 @@ type Order = {
     } | null
 }
 
-type HistoryViewProps = {
-    orders: Order[]
+type PaginationData = {
+    page: number
+    limit: number
+    totalOrders: number
+    totalPages: number
+    hasNextPage: boolean
+    hasPreviousPage: boolean
 }
 
-export default function HistoryView({ orders }: HistoryViewProps) {
+type HistoryViewProps = {
+    orders: Order[]
+    pagination: PaginationData | null
+    initialStatus: OrderStatus | 'ALL'
+}
+
+export default function HistoryView({ orders, pagination, initialStatus }: HistoryViewProps) {
+    const router = useRouter()
+    const pathname = usePathname()
+    const searchParams = useSearchParams()
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
-    const [filterStatus, setFilterStatus] = useState<OrderStatus | 'ALL'>('ALL')
+
+    const updateFilter = (status: OrderStatus | 'ALL') => {
+        const params = new URLSearchParams(searchParams.toString())
+        if (status === 'ALL') {
+            params.delete('status')
+        } else {
+            params.set('status', status)
+        }
+        params.delete('page') // Reset to page 1 when changing filter
+        const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
+        router.push(newUrl, { scroll: false })
+    }
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('id-ID', {
@@ -71,11 +98,7 @@ export default function HistoryView({ orders }: HistoryViewProps) {
         )
     }
 
-    const filteredOrders = filterStatus === 'ALL' 
-        ? orders 
-        : orders.filter(order => order.status === filterStatus)
-
-    const totalRevenue = filteredOrders
+    const totalRevenue = orders
         .filter(order => order.status === OrderStatus.COMPLETED)
         .reduce((sum, order) => sum + order.totalPrice, 0)
 
@@ -95,14 +118,14 @@ export default function HistoryView({ orders }: HistoryViewProps) {
                     <div className="stats shadow bg-base-100">
                         <div className="stat">
                             <div className="stat-title">Total Pesanan</div>
-                            <div className="stat-value text-primary">{filteredOrders.length}</div>
+                            <div className="stat-value text-primary">{pagination?.totalOrders || 0}</div>
                         </div>
                     </div>
                     <div className="stats shadow bg-base-100">
                         <div className="stat">
                             <div className="stat-title">Selesai</div>
                             <div className="stat-value text-success">
-                                {filteredOrders.filter(o => o.status === OrderStatus.COMPLETED).length}
+                                {orders.filter((o: Order) => o.status === OrderStatus.COMPLETED).length}
                             </div>
                         </div>
                     </div>
@@ -119,32 +142,32 @@ export default function HistoryView({ orders }: HistoryViewProps) {
                     <div className="card-body">
                         <div className="flex flex-wrap gap-2">
                             <button 
-                                className={`btn btn-sm ${filterStatus === 'ALL' ? 'btn-primary' : 'btn-ghost'}`}
-                                onClick={() => setFilterStatus('ALL')}
+                                className={`btn btn-sm ${initialStatus === 'ALL' ? 'btn-primary' : 'btn-ghost'}`}
+                                onClick={() => updateFilter('ALL')}
                             >
                                 Semua
                             </button>
                             <button 
-                                className={`btn btn-sm ${filterStatus === OrderStatus.COMPLETED ? 'btn-primary' : 'btn-ghost'}`}
-                                onClick={() => setFilterStatus(OrderStatus.COMPLETED)}
+                                className={`btn btn-sm ${initialStatus === OrderStatus.COMPLETED ? 'btn-primary' : 'btn-ghost'}`}
+                                onClick={() => updateFilter(OrderStatus.COMPLETED)}
                             >
                                 Selesai
                             </button>
                             <button 
-                                className={`btn btn-sm ${filterStatus === OrderStatus.PENDING ? 'btn-primary' : 'btn-ghost'}`}
-                                onClick={() => setFilterStatus(OrderStatus.PENDING)}
+                                className={`btn btn-sm ${initialStatus === OrderStatus.PENDING ? 'btn-primary' : 'btn-ghost'}`}
+                                onClick={() => updateFilter(OrderStatus.PENDING)}
                             >
                                 Menunggu
                             </button>
                             <button 
-                                className={`btn btn-sm ${filterStatus === OrderStatus.PREPARING ? 'btn-primary' : 'btn-ghost'}`}
-                                onClick={() => setFilterStatus(OrderStatus.PREPARING)}
+                                className={`btn btn-sm ${initialStatus === OrderStatus.PREPARING ? 'btn-primary' : 'btn-ghost'}`}
+                                onClick={() => updateFilter(OrderStatus.PREPARING)}
                             >
                                 Sedang Dimasak
                             </button>
                             <button 
-                                className={`btn btn-sm ${filterStatus === OrderStatus.CANCELLED ? 'btn-primary' : 'btn-ghost'}`}
-                                onClick={() => setFilterStatus(OrderStatus.CANCELLED)}
+                                className={`btn btn-sm ${initialStatus === OrderStatus.CANCELLED ? 'btn-primary' : 'btn-ghost'}`}
+                                onClick={() => updateFilter(OrderStatus.CANCELLED)}
                             >
                                 Dibatalkan
                             </button>
@@ -157,7 +180,7 @@ export default function HistoryView({ orders }: HistoryViewProps) {
                     <div className="card-body">
                         <h2 className="card-title mb-4">Daftar Pesanan</h2>
                         
-                        {filteredOrders.length === 0 ? (
+                        {orders.length === 0 ? (
                             <div className="text-center py-16">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-24 w-24 text-base-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -180,7 +203,7 @@ export default function HistoryView({ orders }: HistoryViewProps) {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {filteredOrders.map((order) => (
+                                        {orders.map((order) => (
                                             <tr key={order.id}>
                                                 <td>
                                                     <div className="font-mono text-xs">
@@ -205,7 +228,7 @@ export default function HistoryView({ orders }: HistoryViewProps) {
                                                     <div className="text-sm">
                                                         {order.orderItems.length} item
                                                         <span className="text-xs text-base-content/70">
-                                                            {' '}({order.orderItems.reduce((sum, item) => sum + item.quantity, 0)} qty)
+                                                            {' '}({order.orderItems.reduce((sum: number, item: any) => sum + item.quantity, 0)} qty)
                                                         </span>
                                                     </div>
                                                 </td>
@@ -240,6 +263,16 @@ export default function HistoryView({ orders }: HistoryViewProps) {
                                     </tbody>
                                 </table>
                             </div>
+                        )}
+
+                        {/* Pagination */}
+                        {pagination && (
+                            <Pagination
+                                currentPage={pagination.page}
+                                totalPages={pagination.totalPages}
+                                hasNextPage={pagination.hasNextPage}
+                                hasPreviousPage={pagination.hasPreviousPage}
+                            />
                         )}
                     </div>
                 </div>
