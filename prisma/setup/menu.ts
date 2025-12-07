@@ -33,7 +33,7 @@ export async function setupMenu() {
         description: item.description,
         price: item.price,
         category: item.category || null,
-        image: null
+        image: item.image || null
       }
     })
 
