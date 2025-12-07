@@ -5,12 +5,11 @@ import { Role } from "./generated/prisma/client";
 export async function proxy(request: NextRequest) {
   if(request.nextUrl.pathname == "/") return NextResponse.next();
   const token = await getToken({ req: request, secret: process.env.SECRET });
-
   if (!token){
     if (request.nextUrl.pathname.startsWith("/order/")) return NextResponse.next();
-    return NextResponse.redirect(new URL("/signin", request.url));
+    return request.nextUrl.pathname == "/signin" ? NextResponse.next() : NextResponse.redirect(new URL("/signin", request.url));
   }else{
-    if(request.nextUrl.pathname.startsWith("/order/") || (request.nextUrl.pathname == "/dashboard/users" && token.role != Role.ADMIN)){
+    if(request.nextUrl.pathname == "/signin" ||request.nextUrl.pathname.startsWith("/order/") || (request.nextUrl.pathname == "/dashboard/users" && token.role != Role.ADMIN)){
       return NextResponse.redirect(new URL("/" + (token.role == Role.ADMIN? 'dashboard' : token.role == Role.KITCHEN_STAFF ? 'live' : 'cashier'), request.url));
     }
   } 
@@ -40,5 +39,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-    matcher: ['/((?!signin|api/auth|_next/static|_next/image|__nextjs_font|favicon.ico).*)']
+    matcher: ['/((?!api/auth|_next/static|_next/image|__nextjs_font|favicon.ico).*)']
 }
